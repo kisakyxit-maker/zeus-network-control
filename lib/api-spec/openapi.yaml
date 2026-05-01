@@ -1,22 +1,26 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Zeus MOB MDM API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: devices
+    description: Device management
+  - name: commands
+    description: Command management
+  - name: events
+    description: Event logs
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +28,106 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /devices:
+    get:
+      operationId: listDevices
+      tags: [devices]
+      summary: List all devices
+      responses:
+        "200":
+          description: List of devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+  /devices/{id}:
+    get:
+      operationId: getDevice
+      tags: [devices]
+      summary: Get device by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "404":
+          description: Not found
+  /devices/stats:
+    get:
+      operationId: getDeviceStats
+      tags: [devices]
+      summary: Device statistics summary
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceStats"
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List recent events
+      parameters:
+        - in: query
+          name: deviceId
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceEvent"
+  /commands:
+    get:
+      operationId: listCommands
+      tags: [commands]
+      summary: List available commands
+      responses:
+        "200":
+          description: List of commands
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Command"
+    post:
+      operationId: sendCommand
+      tags: [commands]
+      summary: Send command to device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendCommandBody"
+      responses:
+        "200":
+          description: Command sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandResult"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +137,121 @@ components:
           type: string
       required:
         - status
-
+    Device:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        model:
+          type: string
+        os:
+          type: string
+        osVersion:
+          type: string
+        ipAddress:
+          type: string
+        status:
+          type: string
+          enum: [online, offline, idle, busy]
+        batteryLevel:
+          type: integer
+        lastSeen:
+          type: string
+          format: date-time
+        socketId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - model
+        - os
+        - osVersion
+        - ipAddress
+        - status
+        - batteryLevel
+        - lastSeen
+        - createdAt
+    DeviceStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        online:
+          type: integer
+        offline:
+          type: integer
+        idle:
+          type: integer
+        busy:
+          type: integer
+      required:
+        - total
+        - online
+        - offline
+        - idle
+        - busy
+    DeviceEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        deviceId:
+          type: integer
+        deviceName:
+          type: string
+        type:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - deviceId
+        - deviceName
+        - type
+        - message
+        - createdAt
+    Command:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+      required:
+        - id
+        - label
+        - description
+        - icon
+    SendCommandBody:
+      type: object
+      properties:
+        deviceId:
+          type: integer
+        command:
+          type: string
+      required:
+        - deviceId
+        - command
+    CommandResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
