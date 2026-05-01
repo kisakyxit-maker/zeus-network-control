@@ -54,9 +54,28 @@ export default function DeviceDetail() {
             ["OS", `${device.os} ${device.osVersion}`],
             ["IP ADDRESS", device.ipAddress],
             ["BATTERY", `${device.batteryLevel}%`],
+            ["CAPS", (
+              <div style={{ display: "flex", gap: 2, marginTop: 2 }}>
+                {device.hasRoot ? (
+                  <span style={{ background: "#331100", color: "#ffaa00", border: "1px solid #ffaa00", padding: "1px 3px", fontSize: 8 }}>ROOT</span>
+                ) : (
+                  <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>ROOT</span>
+                )}
+                {device.gpsActive ? (
+                  <span style={{ background: "#002200", color: "#00ff00", border: "1px solid #00ff00", padding: "1px 3px", fontSize: 8 }}>GPS</span>
+                ) : (
+                  <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>GPS</span>
+                )}
+                {device.accessibilityOn ? (
+                  <span style={{ background: "#002200", color: "#00ff00", border: "1px solid #00ff00", padding: "1px 3px", fontSize: 8 }}>ACC:ON</span>
+                ) : (
+                  <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>ACC:OFF</span>
+                )}
+              </div>
+            )],
             ["LAST SEEN", formatDistanceToNow(new Date(device.lastSeen), { addSuffix: true })],
           ].map(([label, value]) => (
-            <div key={label} style={{ padding: "6px 10px", borderRight: "1px solid #111" }}>
+            <div key={label as string} style={{ padding: "6px 10px", borderRight: "1px solid #111" }}>
               <div style={{ fontSize: 9, color: "#444", marginBottom: 2, letterSpacing: "0.08em" }}>{label}</div>
               <div style={{ fontSize: 11, color: "#00cc00", fontFamily: "'Courier New', monospace" }}>{value}</div>
             </div>

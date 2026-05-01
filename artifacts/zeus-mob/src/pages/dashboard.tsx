@@ -8,11 +8,14 @@ import { useListDevices, getListDevicesQueryKey } from "@workspace/api-client-re
 import { useSocket } from "@/hooks/use-socket";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAudioAlerts } from "@/hooks/use-audio-alerts";
 
 export default function Dashboard() {
   const { data: devices, isLoading } = useListDevices();
   const socket = useSocket();
   const queryClient = useQueryClient();
+  
+  useAudioAlerts();
 
   useEffect(() => {
     const handle = (data: { deviceId: number; status: string }) => {

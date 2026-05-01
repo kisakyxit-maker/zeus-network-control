@@ -43,23 +43,24 @@ export function DeviceGrid({ devices, isLoading }: DeviceGridProps) {
 
   return (
     <div className="panel" style={{ padding: 0, overflow: "hidden" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "6px 1fr 80px 70px 110px 80px 90px", gap: 0, background: "#0a0a0a", borderBottom: "1px solid #222", padding: "3px 8px", fontSize: 9, color: "#444", letterSpacing: "0.08em" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "6px 1fr 80px 70px 110px 100px 80px 90px", gap: 0, background: "#0a0a0a", borderBottom: "1px solid #222", padding: "3px 8px", fontSize: 9, color: "#444", letterSpacing: "0.08em" }}>
         <span />
         <span>DEVICE / MODEL</span>
         <span>IP ADDRESS</span>
         <span>OS</span>
         <span>BATTERY</span>
+        <span>CAPS</span>
         <span>STATUS</span>
         <span>LAST SEEN</span>
       </div>
-      {devices.map((device) => (
+      {devices.map((device: any) => (
         <Link key={device.id} href={`/devices/${device.id}`}>
           <div
             className={`device-row ${device.status}`}
             data-testid={`device-row-${device.id}`}
           >
             <span className={`status-dot status-${device.status}`} style={{ flexShrink: 0 }} />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 70px 110px 80px 90px", gap: 0, flex: 1, alignItems: "center" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 70px 110px 100px 80px 90px", gap: 0, flex: 1, alignItems: "center" }}>
               <div>
                 <span style={{ fontWeight: "bold", color: device.status === "online" ? "#00ff00" : device.status === "offline" ? "#555" : "inherit" }}>
                   {device.name}
@@ -69,6 +70,25 @@ export function DeviceGrid({ devices, isLoading }: DeviceGridProps) {
               <span style={{ color: "#00aa88", fontSize: 10, fontFamily: "monospace" }}>{device.ipAddress}</span>
               <span style={{ color: "#666", fontSize: 10 }}>{device.os} {device.osVersion}</span>
               <BatteryIcon level={device.batteryLevel} />
+              
+              <div style={{ display: "flex", gap: 2 }}>
+                {device.hasRoot ? (
+                  <span style={{ background: "#331100", color: "#ffaa00", border: "1px solid #ffaa00", padding: "1px 3px", fontSize: 8 }}>ROOT</span>
+                ) : (
+                  <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>ROOT</span>
+                )}
+                {device.gpsActive ? (
+                  <span style={{ background: "#002200", color: "#00ff00", border: "1px solid #00ff00", padding: "1px 3px", fontSize: 8 }}>GPS</span>
+                ) : (
+                  <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>GPS</span>
+                )}
+                {device.accessibilityOn ? (
+                  <span style={{ background: "#002200", color: "#00ff00", border: "1px solid #00ff00", padding: "1px 3px", fontSize: 8 }}>ACC:ON</span>
+                ) : (
+                  <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>ACC:OFF</span>
+                )}
+              </div>
+
               <DeviceStatusBadge status={device.status} />
               <span style={{ color: "#444", fontSize: 10 }}>
                 {formatDistanceToNow(new Date(device.lastSeen), { addSuffix: true })}

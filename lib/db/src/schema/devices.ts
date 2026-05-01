@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -13,6 +13,9 @@ export const devicesTable = pgTable("devices", {
   ipAddress: text("ip_address").notNull(),
   status: deviceStatusEnum("status").notNull().default("offline"),
   batteryLevel: integer("battery_level").notNull().default(100),
+  hasRoot: boolean("has_root").notNull().default(false),
+  gpsActive: boolean("gps_active").notNull().default(false),
+  accessibilityOn: boolean("accessibility_on").notNull().default(false),
   lastSeen: timestamp("last_seen").notNull().defaultNow(),
   socketId: text("socket_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

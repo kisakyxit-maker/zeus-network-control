@@ -12,6 +12,7 @@ interface EventConsoleProps {
 export function EventConsole({ deviceId, height = "100%" }: EventConsoleProps) {
   const socket = useSocket();
   const [events, setEvents] = useState<DeviceEvent[]>([]);
+  const [search, setSearch] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { data: initialEvents } = useListEvents(
@@ -54,12 +55,42 @@ export function EventConsole({ deviceId, height = "100%" }: EventConsoleProps) {
     }
   };
 
+  const filteredEvents = events.filter(e => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      e.type.toLowerCase().includes(q) ||
+      e.message.toLowerCase().includes(q) ||
+      (e.deviceName && e.deviceName.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div className="panel" style={{ display: "flex", flexDirection: "column", height, overflow: "hidden" }}>
-      <div className="panel-header">
-        <span>&gt;_</span>
-        <span>EVENT CONSOLE</span>
-        <span style={{ marginLeft: "auto", color: "#444" }}>{events.length} ENTRIES</span>
+      <div className="panel-header" style={{ justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span>&gt;_</span>
+          <span>EVENT CONSOLE</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input 
+            type="text" 
+            placeholder="SEARCH..." 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              background: "#000", border: "1px solid #333", color: "#00ff00",
+              fontSize: 9, padding: "2px 6px", outline: "none", width: 100, fontFamily: "inherit"
+            }}
+          />
+          <span style={{ color: "#444", fontSize: 9 }}>{filteredEvents.length}/{events.length}</span>
+          <button 
+            onClick={() => setEvents([])}
+            style={{ background: "#1a0000", border: "1px solid #330000", color: "#ff4444", fontSize: 9, padding: "2px 6px", cursor: "pointer", fontFamily: "inherit" }}
+          >
+            [ CLEAR ]
+          </button>
+        </div>
       </div>
       <div
         data-testid="event-console-body"
@@ -74,12 +105,12 @@ export function EventConsole({ deviceId, height = "100%" }: EventConsoleProps) {
           color: "#00cc00",
         }}
       >
-        {events.length === 0 && (
+        {filteredEvents.length === 0 && (
           <div style={{ color: "#333", padding: "4px 0" }}>
             &gt; awaiting events<span className="blink">_</span>
           </div>
         )}
-        {events.map((event, i) => (
+        {filteredEvents.map((event, i) => (
           <div
             key={event.id ?? i}
             data-testid={`event-entry-${event.id}`}

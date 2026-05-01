@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { useState } from "react";
 import { useGetDeviceStats } from "@workspace/api-client-react";
+import { useAuth } from "@/context/auth";
 
 const NAV = [
   { href: "/", label: "HOME" },
@@ -10,10 +10,17 @@ const NAV = [
 export function Sidebar() {
   const [location] = useLocation();
   const { data: stats } = useGetDeviceStats();
+  const { user, logout } = useAuth();
+
+  const navItems = [...NAV];
+  if (user?.role === "admin") {
+    navItems.push({ href: "/members", label: "SOCIOS" });
+  }
 
   return (
     <aside style={{ width: 160, minWidth: 160, background: "#020202", borderRight: "1px solid #222", display: "flex", flexDirection: "column", height: "100vh", position: "sticky", top: 0 }}>
-      <div style={{ padding: "8px", borderBottom: "1px solid #222" }}>
+      <div style={{ padding: "8px", borderBottom: "1px solid #222", textAlign: "center" }}>
+        <img src="/zeus-logo.jpeg" alt="ZEUS" style={{ width: 60, height: 60, borderRadius: "50%", border: "1px solid #00ff00", marginBottom: 8, objectFit: "contain", margin: "0 auto 8px auto", display: "block" }} />
         <div style={{ fontSize: 13, fontWeight: "bold", letterSpacing: "0.15em", color: "#00ff00", lineHeight: 1 }}>
           ZEUS<span style={{ color: "#fff" }}>MOB</span>
         </div>
@@ -21,7 +28,7 @@ export function Sidebar() {
       </div>
 
       <nav style={{ flex: 1, padding: "4px 0" }}>
-        {NAV.map((item) => {
+        {navItems.map((item) => {
           const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
           return (
             <Link key={item.href} href={item.href}>
@@ -66,10 +73,17 @@ export function Sidebar() {
             </div>
           </div>
         )}
-        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "#00ff00" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "#00ff00", marginBottom: 8 }}>
           <span className="status-dot status-online pulse-green" />
           SYS ONLINE
         </div>
+        
+        {user && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8, paddingTop: 8, borderTop: "1px dashed #222" }}>
+            <div style={{ fontSize: 8, color: "#666", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+            <button onClick={logout} style={{ background: "transparent", border: "1px solid #333", color: "#ff4444", fontSize: 9, padding: "2px 0", cursor: "pointer", fontFamily: "inherit" }} onMouseOver={e => e.currentTarget.style.background = "#1a0000"} onMouseOut={e => e.currentTarget.style.background = "transparent"}>[ LOGOUT ]</button>
+          </div>
+        )}
       </div>
     </aside>
   );

