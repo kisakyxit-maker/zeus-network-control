@@ -1,39 +1,44 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Server, Settings, Cpu } from "lucide-react";
+import { useState } from "react";
+import { useGetDeviceStats } from "@workspace/api-client-react";
+
+const NAV = [
+  { href: "/", label: "HOME" },
+  { href: "/devices", label: "DEVICES" },
+];
 
 export function Sidebar() {
   const [location] = useLocation();
-
-  const navItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/devices", label: "Devices", icon: Server },
-  ];
+  const { data: stats } = useGetDeviceStats();
 
   return (
-    <aside className="w-64 bg-[#050508] border-r border-white/5 h-screen flex flex-col hidden md:flex sticky top-0 shrink-0">
-      <div className="p-6">
-        <Link href="/" className="flex items-center gap-3 text-primary">
-          <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/50 flex items-center justify-center shadow-[0_0_15px_rgba(0,255,136,0.3)]">
-            <Cpu className="w-5 h-5 text-primary" />
-          </div>
-          <span className="font-black text-xl tracking-widest text-white">ZEUS<span className="text-primary">MOB</span></span>
-        </Link>
+    <aside style={{ width: 160, minWidth: 160, background: "#020202", borderRight: "1px solid #222", display: "flex", flexDirection: "column", height: "100vh", position: "sticky", top: 0 }}>
+      <div style={{ padding: "8px", borderBottom: "1px solid #222" }}>
+        <div style={{ fontSize: 13, fontWeight: "bold", letterSpacing: "0.15em", color: "#00ff00", lineHeight: 1 }}>
+          ZEUS<span style={{ color: "#fff" }}>MOB</span>
+        </div>
+        <div style={{ fontSize: 9, color: "#444", marginTop: 2, letterSpacing: "0.1em" }}>MDM CONSOLE v4.2</div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2 mt-4">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
-          
+      <nav style={{ flex: 1, padding: "4px 0" }}>
+        {NAV.map((item) => {
+          const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
           return (
             <Link key={item.href} href={item.href}>
-              <div className={`flex items-center gap-3 px-4 py-3 rounded-lg font-mono text-sm transition-all duration-200 cursor-pointer
-                ${isActive 
-                  ? 'bg-primary/10 text-primary border border-primary/20 shadow-[0_0_10px_rgba(0,255,136,0.1)]' 
-                  : 'text-muted-foreground hover:bg-white/5 hover:text-white'
-                }`}
+              <div
+                data-testid={`nav-${item.label.toLowerCase()}`}
+                style={{
+                  padding: "5px 10px",
+                  fontSize: 10,
+                  fontWeight: "bold",
+                  letterSpacing: "0.1em",
+                  color: isActive ? "#00ff00" : "#555",
+                  background: isActive ? "#0a1a0a" : "transparent",
+                  borderLeft: isActive ? "2px solid #00ff00" : "2px solid transparent",
+                  cursor: "pointer",
+                  transition: "all 0.1s",
+                }}
               >
-                <Icon className="w-4 h-4" />
                 {item.label}
               </div>
             </Link>
@@ -41,17 +46,29 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-white/5">
-        <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-white/5 hover:text-white cursor-pointer transition-colors font-mono text-sm">
-          <Settings className="w-4 h-4" />
-          System Config
-        </div>
-        <div className="mt-4 px-4 py-2 bg-black/40 rounded-lg border border-white/5">
-          <div className="text-[10px] text-muted-foreground font-mono mb-1">SYSTEM STATUS</div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(0,255,136,0.8)] animate-pulse" />
-            <span className="text-xs font-bold tracking-wider text-primary">OPERATIONAL</span>
+      <div style={{ padding: "8px", borderTop: "1px solid #222" }}>
+        {stats && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 9, color: "#444", marginBottom: 4, letterSpacing: "0.08em" }}>FLEET STATUS</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
+                <span style={{ color: "#555" }}>TOTAL</span>
+                <span style={{ color: "#ccc" }}>{stats.total}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
+                <span style={{ color: "#00ff00" }}>ONLINE</span>
+                <span style={{ color: "#00ff00" }}>{stats.online}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10 }}>
+                <span style={{ color: "#ff4444" }}>OFFLINE</span>
+                <span style={{ color: "#ff4444" }}>{stats.offline}</span>
+              </div>
+            </div>
           </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: "#00ff00" }}>
+          <span className="status-dot status-online pulse-green" />
+          SYS ONLINE
         </div>
       </div>
     </aside>
@@ -60,13 +77,29 @@ export function Sidebar() {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-background text-foreground dark">
+    <div style={{ display: "flex", minHeight: "100vh", background: "#000", color: "#00cc00", fontFamily: "'Courier New', monospace" }}>
       <Sidebar />
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-20">
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
           {children}
         </div>
       </main>
+    </div>
+  );
+}
+
+export function TopBar({ title, children }: { title: string; children?: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, paddingBottom: 6, borderBottom: "1px solid #222" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: "bold", letterSpacing: "0.15em", color: "#00ff00" }}>
+          {title}
+        </span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 9, color: "#555" }}>
+        {children}
+        <span className="blink" style={{ color: "#00ff00" }}>_</span>
+      </div>
     </div>
   );
 }

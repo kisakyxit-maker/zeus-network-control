@@ -1,43 +1,37 @@
 import { useGetDeviceStats } from "@workspace/api-client-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, Zap, Moon, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function StatsBar() {
   const { data: stats, isLoading } = useGetDeviceStats();
 
-  if (isLoading) {
-    return <Skeleton className="h-24 w-full bg-white/5 border border-white/10 rounded-lg" />;
-  }
-
-  if (!stats) return null;
-
-  const statItems = [
-    { label: "Total Devices", value: stats.total, icon: Activity, color: "text-white" },
-    { label: "Online", value: stats.online, icon: CheckCircle2, color: "text-primary" },
-    { label: "Offline", value: stats.offline, icon: AlertCircle, color: "text-destructive" },
-    { label: "Busy", value: stats.busy, icon: Zap, color: "text-blue-500" },
-    { label: "Idle", value: stats.idle, icon: Moon, color: "text-yellow-500" },
+  const items = [
+    { label: "Total Devices", value: stats?.total ?? 0, color: "#aaa", icon: "⬡" },
+    { label: "Online", value: stats?.online ?? 0, color: "#00ff00", icon: "▲" },
+    { label: "Offline", value: stats?.offline ?? 0, color: "#ff4444", icon: "▼" },
+    { label: "Busy", value: stats?.busy ?? 0, color: "#4499ff", icon: "◆" },
+    { label: "Idle", value: stats?.idle ?? 0, color: "#ffaa00", icon: "◇" },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-      {statItems.map((item, idx) => {
-        const Icon = item.icon;
-        return (
-          <div key={idx} className="glass-panel rounded-lg p-4 flex flex-col justify-between relative overflow-hidden group">
-            <div className="flex items-center justify-between z-10 relative">
-              <span className="text-sm text-muted-foreground font-mono">{item.label}</span>
-              <Icon className={`w-4 h-4 ${item.color} opacity-70`} />
-            </div>
-            <div className="mt-4 z-10 relative">
-              <span className={`text-3xl font-bold tracking-tighter ${item.color}`}>
-                {item.value}
-              </span>
-            </div>
-            <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-3xl opacity-10 bg-current ${item.color}`} />
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4, marginBottom: 8 }}>
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="stat-box"
+          data-testid={`stat-${item.label.toLowerCase().replace(/\s/g, "-")}`}
+        >
+          <div className="stat-label">
+            <span style={{ marginRight: 4, color: item.color }}>{item.icon}</span>
+            {item.label}
           </div>
-        );
-      })}
+          {isLoading ? (
+            <div style={{ fontSize: 22, color: "#333" }}>--</div>
+          ) : (
+            <div className="stat-value" style={{ color: item.color }}>
+              {item.value}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
