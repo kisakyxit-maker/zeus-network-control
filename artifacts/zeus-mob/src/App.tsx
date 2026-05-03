@@ -11,6 +11,7 @@ import Register from "@/pages/register";
 import Members from "@/pages/members";
 import Administrador from "@/pages/administrador";
 import ApkGenerator from "@/pages/apk-generator";
+import Meeting from "@/pages/meeting";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +80,9 @@ function Router() {
       </Route>
       <Route path="/administrador">
         <ProtectedRoute component={Administrador} adminOnly />
+      </Route>
+      <Route path="/meeting">
+        <ProtectedRoute component={Meeting} />
       </Route>
       <Route path="/apk-generator">
         <ProtectedRoute component={ApkGenerator} adminOnly />

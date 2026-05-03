@@ -10,8 +10,13 @@ interface Member {
   createdAt: string;
 }
 
+type MemberRow = Omit<Member, "role"> & {
+  role?: string;
+  tags?: string[];
+};
+
 export default function Members() {
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<MemberRow[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -19,8 +24,8 @@ export default function Members() {
     try {
       const res = await fetch("/api/members", { credentials: "include" });
       if (res.ok) {
-        const data = await res.json();
-        setMembers(data);
+        const data = (await res.json()) as MemberRow[] | { members?: MemberRow[] };
+        setMembers(Array.isArray(data) ? data : data.members ?? []);
       }
     } catch (err) {
       console.error(err);
