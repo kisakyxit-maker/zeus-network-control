@@ -1,0 +1,5 @@
+npm install -g expo-cli
+npx expo prebuild --platform android
+cd android && chmod +x gradlew && ./gradlew assembleDebug.
+
+
