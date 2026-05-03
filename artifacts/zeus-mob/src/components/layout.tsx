@@ -18,6 +18,7 @@ export function Sidebar() {
       ? [
           { href: "/members", label: "SOCIOS", icon: "👥" },
           { href: "/administrador", label: "ADMINISTRADOR", icon: "🔐" },
+          { href: "/meeting", label: "SALA DE SUPORTE", icon: "🎥" },
           { href: "/apk-generator", label: "GERADOR DE APK", icon: "⚙" },
         ]
       : []),
@@ -39,7 +40,6 @@ export function Sidebar() {
         overflow: "hidden",
       }}
     >
-      {/* Logo */}
       <div
         style={{
           padding: "10px 8px",
@@ -75,7 +75,6 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Nav */}
       <nav style={{ flex: 1, padding: "6px 0" }}>
         {navItems.map((item) => {
           const isActive = item.href === "/" ? location === "/" : location.startsWith(item.href);
@@ -110,7 +109,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
       {!collapsed && user && (
         <div style={{ padding: "8px", borderTop: `1px solid ${DIM}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 9, color: G, marginBottom: 6 }}>
