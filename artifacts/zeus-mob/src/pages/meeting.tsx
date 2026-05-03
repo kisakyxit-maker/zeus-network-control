@@ -3,6 +3,16 @@ import { Layout, TopBar, Panel, PanelHeader } from "@/components/layout";
 
 const G = "#00ff88";
 
+type Point = {
+  x: number;
+  y: number;
+};
+
+type Stroke = {
+  id: number;
+  points: Point[];
+};
+
 const participants = [
   { id: 1, name: "Cliente 01", role: "Aluno", status: "online" },
   { id: 2, name: "Cliente 02", role: "Professor", status: "online" },
@@ -14,8 +24,12 @@ export default function Meeting() {
   const [devices, setDevices] = useState<string[]>([]);
   const [joined, setJoined] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [drawing, setDrawing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const drawStateRef = useRef<{ id: number; active: boolean }>({ id: 0, active: false });
 
   const summary = useMemo(
     () => [
@@ -25,6 +39,74 @@ export default function Meeting() {
     ],
     [joined],
   );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.floor(rect.width * window.devicePixelRatio));
+      canvas.height = Math.max(1, Math.floor(rect.height * window.devicePixelRatio));
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      strokes.forEach((stroke) => {
+        ctx.strokeStyle = G;
+        ctx.beginPath();
+        stroke.points.forEach((point, index) => {
+          if (index === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+      });
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, [strokes]);
+
+  const pushPoint = (x: number, y: number) => {
+    const id = drawStateRef.current.id;
+    setStrokes((current) => {
+      const next = [...current];
+      const last = next[next.length - 1];
+      if (!last || last.id !== id) return next;
+      last.points = [...last.points, { x, y }];
+      return [...next];
+    });
+  };
+
+  const startStroke = (x: number, y: number) => {
+    const id = Date.now();
+    drawStateRef.current = { id, active: true };
+    setDrawing(true);
+    setStrokes((current) => [...current, { id, points: [{ x, y }] }]);
+  };
+
+  const stopStroke = () => {
+    drawStateRef.current.active = false;
+    setDrawing(false);
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    startStroke(event.clientX - rect.left, event.clientY - rect.top);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!drawStateRef.current.active) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    pushPoint(event.clientX - rect.left, event.clientY - rect.top);
+  };
+
+  const handlePointerUp = () => stopStroke();
+
+  const clearCanvas = () => setStrokes([]);
 
   const handleShare = async () => {
     try {
@@ -98,26 +180,28 @@ export default function Meeting() {
                 padding: 24,
               }}
             >
-              <div style={{ width: "100%" }}>
-                <div style={{ color: G, fontSize: 14, marginBottom: 8, letterSpacing: "0.2em" }}>
-                  SESSÃO DE TREINAMENTO
+              <div style={{ width: "100%", display: "grid", gap: 12 }}>
+                <div>
+                  <div style={{ color: G, fontSize: 14, marginBottom: 8, letterSpacing: "0.2em" }}>
+                    SESSÃO DE TREINAMENTO
+                  </div>
+                  <div>Use esta aba para chat, presença e orientação guiada.</div>
+                  <div style={{ marginTop: 10, color: "#445" }}>
+                    Compartilhamento manual de tela pode ser iniciado pelo próprio usuário.
+                  </div>
                 </div>
-                <div>Use esta aba para chat, presença e orientação guiada.</div>
-                <div style={{ marginTop: 10, color: "#445" }}>
-                  Compartilhamento manual de tela pode ser iniciado pelo próprio usuário.
-                </div>
-                <video ref={videoRef} muted playsInline style={{ width: "100%", marginTop: 14, border: "1px solid rgba(0,255,136,0.14)", background: "#000" }} />
+                <video ref={videoRef} muted playsInline style={{ width: "100%", border: "1px solid rgba(0,255,136,0.14)", background: "#000" }} />
                 {preview && (
                   <img
                     src={preview}
                     alt="preview"
-                    style={{ width: "100%", marginTop: 10, border: "1px solid rgba(0,255,136,0.14)" }}
+                    style={{ width: "100%", border: "1px solid rgba(0,255,136,0.14)" }}
                   />
                 )}
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button
                 onClick={handleShare}
                 style={{
@@ -195,6 +279,48 @@ export default function Meeting() {
                   </div>
                 </div>
               ))}
+            </div>
+          </Panel>
+
+          <Panel>
+            <PanelHeader>
+              <span>&gt; CANVAS COLABORATIVO</span>
+              <button
+                onClick={clearCanvas}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: G,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  fontSize: 8,
+                  letterSpacing: "0.12em",
+                }}
+              >
+                LIMPAR
+              </button>
+            </PanelHeader>
+            <div style={{ padding: 12 }}>
+              <div style={{ color: "#7a8699", fontSize: 10, marginBottom: 10 }}>
+                Desenho local com estrutura pronta para sincronização visual entre participantes.
+              </div>
+              <canvas
+                ref={canvasRef}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
+                style={{
+                  width: "100%",
+                  height: 220,
+                  display: "block",
+                  border: "1px solid rgba(0,255,136,0.18)",
+                  background:
+                    "linear-gradient(180deg, rgba(8,12,16,0.98), rgba(4,6,8,0.98)), radial-gradient(circle at top right, rgba(0,255,136,0.08), transparent 35%)",
+                  touchAction: "none",
+                  cursor: drawing ? "crosshair" : "crosshair",
+                }}
+              />
             </div>
           </Panel>
         </div>
