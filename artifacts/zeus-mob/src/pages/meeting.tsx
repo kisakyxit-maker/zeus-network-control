@@ -136,16 +136,18 @@ export default function Meeting() {
           streamRef.current = null;
         }
       };
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const capture = () => {
-        if (!videoRef.current || !ctx || videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) return;
+      const captureFrame = () => {
+        if (!videoRef.current || videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) return;
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
         canvas.width = videoRef.current.videoWidth;
         canvas.height = videoRef.current.videoHeight;
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
         setPreview(canvas.toDataURL("image/png"));
       };
-      const timer = window.setInterval(capture, 1200);
+      captureFrame();
+      const timer = window.setInterval(captureFrame, 1200);
       screenTrack.addEventListener("ended", () => window.clearInterval(timer), { once: true });
     } catch {
       setSharing(false);
