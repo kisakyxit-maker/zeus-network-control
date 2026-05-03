@@ -27,6 +27,7 @@ export default function Meeting() {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [drawing, setDrawing] = useState(false);
   const [shareStatus, setShareStatus] = useState("Pronto para compartilhar");
+  const [activity, setActivity] = useState<string[]>(["Sessão iniciada"]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -41,6 +42,14 @@ export default function Meeting() {
     ],
     [joined],
   );
+
+  const pushActivity = (message: string) => {
+    setActivity((current) => [message, ...current].slice(0, 8));
+  };
+
+  useEffect(() => {
+    pushActivity("Tela da sala sincronizada localmente");
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -87,6 +96,7 @@ export default function Meeting() {
     drawStateRef.current = { id, active: true };
     setDrawing(true);
     setStrokes((current) => [...current, { id, points: [{ x, y }] }]);
+    pushActivity("Pincel iniciado no canvas");
   };
 
   const stopStroke = () => {
@@ -108,7 +118,10 @@ export default function Meeting() {
 
   const handlePointerUp = () => stopStroke();
 
-  const clearCanvas = () => setStrokes([]);
+  const clearCanvas = () => {
+    setStrokes([]);
+    pushActivity("Canvas limpo");
+  };
 
   const stopCamera = () => {
     if (cameraRef.current) {
@@ -124,10 +137,12 @@ export default function Meeting() {
       cameraRef.current = stream;
       setDevices((current) => [...current.filter((item) => item !== "Permissões de câmera e microfone concedidas"), "Permissões de câmera e microfone concedidas"]);
       setShareStatus("Permissões do sistema abertas");
+      pushActivity("Permissões de câmera/microfone solicitadas");
       setSharing(false);
       setPreview(null);
     } catch {
       setShareStatus("Permissões recusadas");
+      pushActivity("Permissões recusadas");
     }
   };
 
@@ -138,6 +153,7 @@ export default function Meeting() {
       if (!getDisplayMedia) {
         setShareStatus("Compartilhamento sem suporte neste navegador");
         setDevices(["Compatibilidade limitada"]);
+        pushActivity("Compartilhamento indisponível");
         return;
       }
       if (streamRef.current) {
@@ -145,12 +161,14 @@ export default function Meeting() {
         streamRef.current = null;
       }
       setShareStatus("Abrindo seletor de tela...");
+      pushActivity("Solicitação de compartilhamento de tela");
       const stream = await getDisplayMedia({ video: true, audio: false });
       streamRef.current = stream;
       const tracks = stream.getVideoTracks();
       setDevices(tracks.map((t) => t.label || "Tela compartilhada"));
       setSharing(true);
       setShareStatus("Compartilhando tela");
+      pushActivity("Compartilhamento iniciado");
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.playsInline = true;
@@ -161,6 +179,7 @@ export default function Meeting() {
         setSharing(false);
         setPreview(null);
         setShareStatus("Compartilhamento encerrado");
+        pushActivity("Compartilhamento encerrado");
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
           streamRef.current = null;
@@ -182,6 +201,7 @@ export default function Meeting() {
     } catch {
       setSharing(false);
       setShareStatus("Falha ao iniciar compartilhamento");
+      pushActivity("Falha no compartilhamento");
     }
   };
 
@@ -264,7 +284,10 @@ export default function Meeting() {
                 [ CÂMERA / MICROFONE ]
               </button>
               <button
-                onClick={() => setJoined((v) => !v)}
+                onClick={() => {
+                  setJoined((v) => !v);
+                  pushActivity("Botão de presença clicado");
+                }}
                 style={{
                   background: "transparent",
                   color: G,
@@ -367,6 +390,19 @@ export default function Meeting() {
                   cursor: drawing ? "crosshair" : "crosshair",
                 }}
               />
+            </div>
+          </Panel>
+
+          <Panel>
+            <PanelHeader>
+              <span>&gt; LOGS DE ATIVIDADE</span>
+            </PanelHeader>
+            <div style={{ padding: 12, display: "grid", gap: 8 }}>
+              {activity.map((item, index) => (
+                <div key={`${item}-${index}`} style={{ color: index === 0 ? G : "#8fa1b7", fontSize: 10 }}>
+                  {item}
+                </div>
+              ))}
             </div>
           </Panel>
         </div>

