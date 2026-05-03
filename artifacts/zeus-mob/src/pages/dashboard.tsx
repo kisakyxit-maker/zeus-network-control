@@ -4,7 +4,7 @@ import { EventConsole } from "@/components/event-console";
 import { CommandPanel } from "@/components/command-panel";
 import { useListDevices, getListDevicesQueryKey } from "@workspace/api-client-react";
 import { useSocket } from "@/hooks/use-socket";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAudioAlerts } from "@/hooks/use-audio-alerts";
 import { Link } from "wouter";
@@ -46,6 +46,7 @@ export default function Dashboard() {
   const { data: devices } = useListDevices();
   const socket = useSocket();
   const queryClient = useQueryClient();
+  const [showInstallBanner, setShowInstallBanner] = useState(true);
 
   useAudioAlerts();
 
@@ -53,11 +54,13 @@ export default function Dashboard() {
     const handle = (data: { deviceId: number; status: string }) => {
       queryClient.setQueryData(getListDevicesQueryKey(), (old: any) => {
         if (!old) return old;
-        return old.map((d: any) => d.id === data.deviceId ? { ...d, status: data.status } : d);
+        return old.map((d: any) => (d.id === data.deviceId ? { ...d, status: data.status } : d));
       });
     };
     socket.on("device:status", handle);
-    return () => { socket.off("device:status", handle); };
+    return () => {
+      socket.off("device:status", handle);
+    };
   }, [socket, queryClient]);
 
   const online = devices?.filter((d: any) => d.status === "online" || d.status === "idle").length ?? 0;
@@ -71,6 +74,32 @@ export default function Dashboard() {
           <span style={{ color: "#334" }}>|</span>
           <span style={{ color: "#445" }}>{total} TOTAL</span>
         </TopBar>
+
+        {showInstallBanner && (
+          <div
+            style={{
+              marginBottom: 10,
+              padding: "10px 12px",
+              border: "1px solid rgba(0,255,136,0.18)",
+              background: "rgba(0,255,136,0.06)",
+              color: G,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              fontSize: 11,
+              letterSpacing: "0.08em",
+            }}
+          >
+            <span>Instale o ZEUS MOB para melhor experiência</span>
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              style={{ background: "transparent", border: "none", color: G, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              FECHAR
+            </button>
+          </div>
+        )}
 
         <div
           style={{

@@ -31,6 +31,7 @@ export default function Meeting() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const drawStateRef = useRef<{ id: number; active: boolean }>({ id: 0, active: false });
+  const cameraRef = useRef<MediaStream | null>(null);
 
   const summary = useMemo(
     () => [
@@ -108,6 +109,27 @@ export default function Meeting() {
   const handlePointerUp = () => stopStroke();
 
   const clearCanvas = () => setStrokes([]);
+
+  const stopCamera = () => {
+    if (cameraRef.current) {
+      cameraRef.current.getTracks().forEach((track) => track.stop());
+      cameraRef.current = null;
+    }
+  };
+
+  const handlePermissions = async () => {
+    try {
+      stopCamera();
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      cameraRef.current = stream;
+      setDevices((current) => [...current.filter((item) => item !== "Permissões de câmera e microfone concedidas"), "Permissões de câmera e microfone concedidas"]);
+      setShareStatus("Permissões do sistema abertas");
+      setSharing(false);
+      setPreview(null);
+    } catch {
+      setShareStatus("Permissões recusadas");
+    }
+  };
 
   const handleShare = async () => {
     try {
@@ -225,6 +247,21 @@ export default function Meeting() {
                 }}
               >
                 {sharing ? "[ PARAR COMPARTILHAMENTO ]" : "[ COMPARTILHAR TELA ]"}
+              </button>
+              <button
+                onClick={handlePermissions}
+                style={{
+                  background: "transparent",
+                  color: G,
+                  border: `1px solid ${G}`,
+                  padding: "10px 14px",
+                  fontFamily: "inherit",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  letterSpacing: "0.15em",
+                }}
+              >
+                [ CÂMERA / MICROFONE ]
               </button>
               <button
                 onClick={() => setJoined((v) => !v)}

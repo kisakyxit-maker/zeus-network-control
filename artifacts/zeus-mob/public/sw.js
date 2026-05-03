@@ -1,5 +1,5 @@
-const CACHE_NAME = "zeus-mob-pwa-v1";
-const ASSETS = ["./", "./manifest.json"];
+const CACHE_NAME = "zeus-mob-pwa-v2";
+const ASSETS = ["./", "./manifest.json", "./sw.js"];
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
   self.skipWaiting();
