@@ -26,6 +26,7 @@ export default function Meeting() {
   const [preview, setPreview] = useState<string | null>(null);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [drawing, setDrawing] = useState(false);
+  const [shareStatus, setShareStatus] = useState("Pronto para compartilhar");
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -110,27 +111,34 @@ export default function Meeting() {
 
   const handleShare = async () => {
     try {
-      if (!navigator.mediaDevices?.getDisplayMedia) {
-        setDevices(["Screen share indisponível neste navegador."]);
+      const media = navigator.mediaDevices;
+      const getDisplayMedia = media?.getDisplayMedia?.bind(media);
+      if (!getDisplayMedia) {
+        setShareStatus("Compartilhamento sem suporte neste navegador");
+        setDevices(["Compatibilidade limitada"]);
         return;
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      setShareStatus("Abrindo seletor de tela...");
+      const stream = await getDisplayMedia({ video: true, audio: false });
       streamRef.current = stream;
       const tracks = stream.getVideoTracks();
       setDevices(tracks.map((t) => t.label || "Tela compartilhada"));
       setSharing(true);
+      setShareStatus("Compartilhando tela");
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.playsInline = true;
         await videoRef.current.play().catch(() => undefined);
       }
       const screenTrack = tracks[0];
       screenTrack.onended = () => {
         setSharing(false);
         setPreview(null);
+        setShareStatus("Compartilhamento encerrado");
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
           streamRef.current = null;
@@ -151,6 +159,7 @@ export default function Meeting() {
       screenTrack.addEventListener("ended", () => window.clearInterval(timer), { once: true });
     } catch {
       setSharing(false);
+      setShareStatus("Falha ao iniciar compartilhamento");
     }
   };
 
@@ -188,9 +197,7 @@ export default function Meeting() {
                     SESSÃO DE TREINAMENTO
                   </div>
                   <div>Use esta aba para chat, presença e orientação guiada.</div>
-                  <div style={{ marginTop: 10, color: "#445" }}>
-                    Compartilhamento manual de tela pode ser iniciado pelo próprio usuário.
-                  </div>
+                  <div style={{ marginTop: 10, color: "#445" }}>{shareStatus}</div>
                 </div>
                 <video ref={videoRef} muted playsInline style={{ width: "100%", border: "1px solid rgba(0,255,136,0.14)", background: "#000" }} />
                 {preview && (
