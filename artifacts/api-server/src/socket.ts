@@ -44,6 +44,10 @@ export function setupSocket(io: SocketIoServer) {
       }
     }
 
+    socket.on("get_apps", (data: { deviceId: number; apps?: any[] }) => {
+      socket.emit("get_apps", data);
+    });
+
     socket.on("device:stream", (data: { deviceId: number; frame: string }) => {
       socket.broadcast.emit("stream:frame", data);
     });
