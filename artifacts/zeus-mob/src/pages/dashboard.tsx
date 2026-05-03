@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAudioAlerts } from "@/hooks/use-audio-alerts";
 import { Link } from "wouter";
+import atlasPreview from "@assets/screenshot-1777787986236.png";
 
 const G = "#00ff88";
 const BG = "#0a0b10";
@@ -102,6 +103,65 @@ export default function Dashboard() {
               <GlassCard title="SESSION UP" value="14h" desc="Tempo de atividade e conexão visual contínua." accent="#44aaff" />
             </div>
           </div>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.1fr 0.9fr",
+            gap: 10,
+            marginBottom: 12,
+          }}
+        >
+          <Panel>
+            <PanelHeader>
+              <span>&gt; APRESENTAÇÃO VISUAL</span>
+              <span style={{ color: "#445", fontSize: 8, letterSpacing: "0.08em" }}>ATLAS PREVIEW</span>
+            </PanelHeader>
+            <div
+              style={{
+                padding: 12,
+                background: "linear-gradient(180deg, rgba(12,16,24,0.85), rgba(5,7,10,0.85))",
+              }}
+            >
+              <img
+                src={atlasPreview}
+                alt="Preview Atlas"
+                style={{
+                  width: "100%",
+                  display: "block",
+                  border: "1px solid rgba(0,255,136,0.14)",
+                  boxShadow: "0 0 24px rgba(0,255,136,0.08)",
+                  objectFit: "cover",
+                }}
+              />
+            </div>
+          </Panel>
+          <Panel>
+            <PanelHeader>
+              <span>&gt; SYSTEM SNAPSHOT</span>
+              <span style={{ color: "#445", fontSize: 8, letterSpacing: "0.08em" }}>UI STATE</span>
+            </PanelHeader>
+            <div style={{ padding: 12, display: "grid", gap: 10 }}>
+              {[
+                { label: "FRAMEWORK", value: "React + Vite", color: G },
+                { label: "THEME", value: "Dark / Glass / Neon", color: "#44aaff" },
+                { label: "LAYOUT", value: "Responsive Grid", color: "#ffaa00" },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    padding: 12,
+                    border: "1px solid rgba(0,255,136,0.12)",
+                    background: "rgba(255,255,255,0.02)",
+                  }}
+                >
+                  <div style={{ fontSize: 9, color: "#708097", letterSpacing: "0.16em" }}>{item.label}</div>
+                  <div style={{ marginTop: 6, color: item.color, fontWeight: 700, fontSize: 18 }}>{item.value}</div>
+                </div>
+              ))}
+            </div>
+          </Panel>
         </div>
 
         <StatsBar />
