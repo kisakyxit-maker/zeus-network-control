@@ -3,12 +3,16 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import { pool } from "@workspace/db";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
 const PgStore = connectPgSimple(session);
 
 const app: Express = express();
+
+// Trust Replit's reverse proxy so cookies work correctly
+app.set("trust proxy", 1);
 
 app.use(
   pinoHttp({
@@ -36,7 +40,7 @@ if (!sessionSecret) {
 app.use(
   session({
     store: new PgStore({
-      conString: process.env["DATABASE_URL"],
+      pool,
       tableName: "user_sessions",
       createTableIfMissing: true,
     }),
@@ -44,10 +48,10 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env["NODE_ENV"] === "production",
+      secure: false,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: process.env["NODE_ENV"] === "production" ? "none" : "lax",
+      sameSite: "lax",
     },
   }),
 );

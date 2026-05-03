@@ -320,7 +320,17 @@
   }
 
   @keyframes pulseGreen {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,0,0.4); }
-    50% { box-shadow: 0 0 0 4px rgba(0,255,0,0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,136,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(0,255,136,0); }
+  }
+
+  @keyframes micPulse {
+    0% { transform: scaleY(0.2); }
+    100% { transform: scaleY(1); }
+  }
+
+  @keyframes scanline {
+    0% { top: -10%; }
+    100% { top: 110%; }
   }
 }
