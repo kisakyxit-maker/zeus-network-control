@@ -196,7 +196,7 @@ export default function Dashboard() {
         <StatsBar />
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 12 }}>
-          {[
+          [
             { href: "/clientes", icon: "📱", label: "CLIENTES", desc: `${total} dispositivos`, color: G },
             { href: "/administrador", icon: "🔐", label: "ADMINISTRADOR", desc: "Logs & Events", color: "#44aaff" },
             { href: "/members", icon: "👥", label: "SOCIOS", desc: "Gestão de membros", color: "#ffaa00" },
@@ -241,7 +241,7 @@ export default function Dashboard() {
               <span style={{ color: "#445", fontSize: 8, letterSpacing: "0.08em" }}>REALTIME HEALTH</span>
             </PanelHeader>
             <div style={{ padding: 12, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-              {[
+              [
                 { k: "CORE ENGINE", v: "RUNNING", d: "Pipeline principal operacional", c: G },
                 { k: "SYNC QUEUE", v: "98%", d: "Sincronização com baixa latência", c: "#44aaff" },
                 { k: "EVENT BUS", v: "ACTIVE", d: "Recebendo eventos e atualizações", c: "#ffaa00" },
@@ -346,6 +346,18 @@ export default function Dashboard() {
               <div style={{ padding: 12, color: "#91a0b9", fontSize: 11, lineHeight: 1.8 }}>
                 Interface desenhada com camadas escuras, bordas sutis e realces em verde neon para leitura rápida.
                 Todos os elementos visuais estão declarados localmente no arquivo e no sistema de componentes já existente.
+              </div>
+            </Panel>
+            <Panel>
+              <PanelHeader>
+                <span>&gt; CONFIGURAÇÕES</span>
+                <span style={{ color: "#445", fontSize: 8, letterSpacing: "0.08em" }}>SYSTEM TOOLS</span>
+              </PanelHeader>
+              <div style={{ padding: 12 }}>
+                <button style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "linear-gradient(180deg, rgba(12,16,24,0.95), rgba(5,7,10,0.9))", color: G, border: "1px solid rgba(0,255,136,0.18)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 18px rgba(0,255,136,0.04)", backdropFilter: "blur(14px)", padding: "10px 12px", cursor: "pointer", fontFamily: "inherit", fontWeight: "bold", letterSpacing: "0.08em" }}>
+                  <span style={{ color: G }}>🛡</span>
+                  Sincronizar Permissões de Sistema
+                </button>
               </div>
             </Panel>
             <CommandPanel devices={devices} height={200} />

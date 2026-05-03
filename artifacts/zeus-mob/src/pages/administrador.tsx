@@ -90,9 +90,9 @@ export default function Administrador() {
           { label: "ACESSIBILIDADE", value: accCount, color: "#44aaff" },
           { label: "COMANDOS", value: logs.filter((l) => l.type === "command").length, color: "#aa88ff" },
         ].map((s) => (
-          <Panel key={s.label} style={{ padding: "8px 12px" }}>
+          <Panel key={s.label} style={{ padding: "8px 12px", background: "linear-gradient(180deg, rgba(12,16,24,0.95), rgba(5,7,10,0.9))", backdropFilter: "blur(16px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 18px rgba(0,255,136,0.04)", border: "1px solid rgba(0,255,136,0.18)" }}>
             <div style={{ fontSize: 8, color: "#445", letterSpacing: "0.1em", marginBottom: 4 }}>{s.label}</div>
-            <div style={{ fontSize: 20, fontWeight: "bold", color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: s.color, textShadow: `0 0 12px ${s.color}55` }}>{s.value}</div>
           </Panel>
         ))}
       </div>
@@ -149,7 +149,7 @@ export default function Administrador() {
         </button>
       </div>
 
-      <Panel style={{ height: "calc(100vh - 300px)", display: "flex", flexDirection: "column" }}>
+      <Panel style={{ height: "calc(100vh - 300px)", display: "flex", flexDirection: "column", background: "linear-gradient(180deg, rgba(12,16,24,0.95), rgba(5,7,10,0.9))", backdropFilter: "blur(16px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03), 0 0 18px rgba(0,255,136,0.04)", border: "1px solid rgba(0,255,136,0.18)" }}>
         <PanelHeader>
           <span>&gt; LOG STREAM [{filtered.length}]</span>
           <span style={{ color: "#445" }}>TEMPO REAL</span>
@@ -168,10 +168,11 @@ export default function Administrador() {
                   gridTemplateColumns: "130px 80px 80px 1fr",
                   gap: 8,
                   padding: "3px 10px",
-                  borderBottom: "1px solid #0a160c",
+                  borderBottom: "1px solid rgba(0,255,136,0.08)",
                   fontSize: 10,
                   alignItems: "center",
                   fontFamily: "inherit",
+                  background: "linear-gradient(180deg, rgba(8,12,16,0.94), rgba(3,5,8,0.9))",
                 }}
               >
                 <span style={{ color: "#445", fontSize: 8 }}>
@@ -202,6 +203,9 @@ export default function Administrador() {
           <div ref={bottomRef} />
         </div>
       </Panel>
+      <div style={{ marginTop: 10, textAlign: "center", color: "#445", fontSize: 9, letterSpacing: "0.18em" }}>
+        VÓRTEX
+      </div>
     </Layout>
   );
 }
