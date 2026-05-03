@@ -15,10 +15,7 @@ export function EventConsole({ deviceId, height = "100%" }: EventConsoleProps) {
   const [search, setSearch] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { data: initialEvents } = useListEvents(
-    { limit: 50, deviceId },
-    { query: { enabled: true } }
-  );
+  const { data: initialEvents } = useListEvents({ limit: 50, deviceId });
 
   useEffect(() => {
     if (initialEvents) setEvents(initialEvents);

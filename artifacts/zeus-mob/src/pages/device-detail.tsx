@@ -56,17 +56,17 @@ export default function DeviceDetail() {
             ["BATTERY", `${device.batteryLevel}%`],
             ["CAPS", (
               <div style={{ display: "flex", gap: 2, marginTop: 2 }}>
-                {device.hasRoot ? (
+                {(device as any).hasRoot ? (
                   <span style={{ background: "#331100", color: "#ffaa00", border: "1px solid #ffaa00", padding: "1px 3px", fontSize: 8 }}>ROOT</span>
                 ) : (
                   <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>ROOT</span>
                 )}
-                {device.gpsActive ? (
+                {(device as any).gpsActive ? (
                   <span style={{ background: "#002200", color: "#00ff00", border: "1px solid #00ff00", padding: "1px 3px", fontSize: 8 }}>GPS</span>
                 ) : (
                   <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>GPS</span>
                 )}
-                {device.accessibilityOn ? (
+                {(device as any).accessibilityOn ? (
                   <span style={{ background: "#002200", color: "#00ff00", border: "1px solid #00ff00", padding: "1px 3px", fontSize: 8 }}>ACC:ON</span>
                 ) : (
                   <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>ACC:OFF</span>
