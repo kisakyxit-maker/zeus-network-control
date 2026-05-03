@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Layout, TopBar, Panel, PanelHeader } from "@/components/layout";
 
 const G = "#00ff88";
@@ -13,6 +13,9 @@ export default function Meeting() {
   const [sharing, setSharing] = useState(false);
   const [devices, setDevices] = useState<string[]>([]);
   const [joined, setJoined] = useState(true);
+  const [preview, setPreview] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const summary = useMemo(
     () => [
@@ -29,11 +32,39 @@ export default function Meeting() {
         setDevices(["Screen share indisponível neste navegador."]);
         return;
       }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      streamRef.current = stream;
       const tracks = stream.getVideoTracks();
       setDevices(tracks.map((t) => t.label || "Tela compartilhada"));
       setSharing(true);
-      tracks[0].onended = () => setSharing(false);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => undefined);
+      }
+      const screenTrack = tracks[0];
+      screenTrack.onended = () => {
+        setSharing(false);
+        setPreview(null);
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+      };
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const capture = () => {
+        if (!videoRef.current || !ctx || videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) return;
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        setPreview(canvas.toDataURL("image/png"));
+      };
+      const timer = window.setInterval(capture, 1200);
+      screenTrack.addEventListener("ended", () => window.clearInterval(timer), { once: true });
     } catch {
       setSharing(false);
     }
@@ -67,7 +98,7 @@ export default function Meeting() {
                 padding: 24,
               }}
             >
-              <div>
+              <div style={{ width: "100%" }}>
                 <div style={{ color: G, fontSize: 14, marginBottom: 8, letterSpacing: "0.2em" }}>
                   SESSÃO DE TREINAMENTO
                 </div>
@@ -75,6 +106,14 @@ export default function Meeting() {
                 <div style={{ marginTop: 10, color: "#445" }}>
                   Compartilhamento manual de tela pode ser iniciado pelo próprio usuário.
                 </div>
+                <video ref={videoRef} muted playsInline style={{ width: "100%", marginTop: 14, border: "1px solid rgba(0,255,136,0.14)", background: "#000" }} />
+                {preview && (
+                  <img
+                    src={preview}
+                    alt="preview"
+                    style={{ width: "100%", marginTop: 10, border: "1px solid rgba(0,255,136,0.14)" }}
+                  />
+                )}
               </div>
             </div>
 
