@@ -157,7 +157,7 @@ export default function ApkGenerator() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${builtPkg}-zeus-config.json`;
+    a.download = "zeus-config.json";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
