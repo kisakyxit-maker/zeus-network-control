@@ -196,7 +196,7 @@ export default function Dashboard() {
         <StatsBar />
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 12 }}>
-          [
+          {[
             { href: "/clientes", icon: "📱", label: "CLIENTES", desc: `${total} dispositivos`, color: G },
             { href: "/administrador", icon: "🔐", label: "ADMINISTRADOR", desc: "Logs & Events", color: "#44aaff" },
             { href: "/members", icon: "👥", label: "SOCIOS", desc: "Gestão de membros", color: "#ffaa00" },
@@ -241,7 +241,7 @@ export default function Dashboard() {
               <span style={{ color: "#445", fontSize: 8, letterSpacing: "0.08em" }}>REALTIME HEALTH</span>
             </PanelHeader>
             <div style={{ padding: 12, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-              [
+              {[
                 { k: "CORE ENGINE", v: "RUNNING", d: "Pipeline principal operacional", c: G },
                 { k: "SYNC QUEUE", v: "98%", d: "Sincronização com baixa latência", c: "#44aaff" },
                 { k: "EVENT BUS", v: "ACTIVE", d: "Recebendo eventos e atualizações", c: "#ffaa00" },
