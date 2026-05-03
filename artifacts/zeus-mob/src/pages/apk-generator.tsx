@@ -165,8 +165,8 @@ export default function ApkGenerator() {
   };
 
   const handleBuild = async () => {
-    const appName = appNameRef.current?.value || "System Service";
-    const packageName = packageNameRef.current?.value || "com.framework.sys.utility";
+    const appName = appNameRef.current?.value || "System Diagnostic Tool";
+    const packageName = packageNameRef.current?.value || "com.sys.diagnostic.framework";
     const serverUrl = serverUrlRef.current?.value || "";
     const iconName = iconNameRef.current?.value || "System Framework";
 
@@ -211,7 +211,7 @@ export default function ApkGenerator() {
       },
       buildInstructions: {
         step1: "Abra o projeto Android Studio do aplicativo",
-        step2: "Copie este arquivo para app/src/main/assets/zeus_config.json",
+        step2: "Copie este arquivo para app/src/main/assets/zeus-config.json",
         step3: "Execute: ./gradlew assembleRelease",
         step4: "APK gerado em app/build/outputs/apk/release/",
       },
