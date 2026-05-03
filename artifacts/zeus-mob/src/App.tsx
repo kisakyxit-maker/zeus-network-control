@@ -53,7 +53,11 @@ function ProtectedRoute({
     );
   }
 
-  if (!user || (user.role !== "admin" && user.status !== "approved")) {
+  if (!user) {
+    return <Redirect to="/login" />;
+  }
+
+  if (user.role !== "admin" && user.status !== "approved") {
     return <Redirect to="/login" />;
   }
 
