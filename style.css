@@ -1,0 +1,11 @@
+:root {
+  --background: #0a0b10;
+  --neon-green: #39ff14;
+  --glass: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  background-color: var(--background);
+  color: white;
+  font-family: sans-serif;
+}

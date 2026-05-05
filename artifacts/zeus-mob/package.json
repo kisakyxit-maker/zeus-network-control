@@ -7,7 +7,8 @@
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "expo lint"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -54,6 +55,8 @@
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
+    "eslint": "^9.39.4",
+    "eslint-config-expo": "~55.0.0",
     "framer-motion": "catalog:",
     "input-otp": "^1.4.2",
     "lucide-react": "catalog:",
@@ -63,6 +66,7 @@
     "react-dom": "catalog:",
     "react-hook-form": "^7.55.0",
     "react-icons": "^5.4.0",
+    "react-native": "^0.85.2",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
     "sonner": "^2.0.7",
@@ -75,7 +79,16 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~3.2.3",
+    "expo": "^55.0.19",
     "jszip": "^3.10.1",
+    "react": "19.2.0",
+    "react-dom": "18.2.0",
+    "react-native": "0.83.6",
+    "react-native-web": "~0.19.10",
     "socket.io-client": "^4.8.3"
+  },
+  "peerDependencies": {
+    "react-native": "^0.85.2"
   }
 }

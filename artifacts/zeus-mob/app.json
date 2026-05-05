@@ -1,0 +1,12 @@
+{
+  "android": {
+    "package": "com.anonymous.workspacezeusmob"
+  },
+  "extra": {
+    "eas": {
+      "projectId": "34ab8511-290d-4419-8d2e-76bc2385e8f3"
+    }
+  },
+  "owner": "kaua7273",
+  "slug": "workspacezeus-mob"
+}
