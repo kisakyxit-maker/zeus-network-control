@@ -4,13 +4,8 @@
       "package": "com.kaua7273.workspace"
     },
     "ios": {
-      "bundleIdentifier": "com.kaua7273.workspace"
+      "bundleIdentifier": "com.kaua7383.workspace"
     },
-    "extra": {
-      "eas": {
-        "projectId": "3945f02a-d838-4586-80c6-0d1d84415307"
-      }
-    },
-    "owner": "kaua7273"
+    "owner": "kaua7383"
   }
 }
