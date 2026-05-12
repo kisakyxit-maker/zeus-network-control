@@ -1,14 +1,8 @@
 {
   "expo": {
-    "extra": {
-      "eas": {
-        "projectId": "9f17e574-a98e-4d98-8ed9-c72924473bc9"
-      }
-    },
     "android": {
       "package": "com.kaua7273.workspace"
     },
-    "owner": "kaua9282",
     "ios": {
       "bundleIdentifier": "com.kaua7273.workspace"
     }
