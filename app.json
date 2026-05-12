@@ -1,6 +1,19 @@
 {
   "expo": {
+    "name": "ZEUS MOB",
+    "slug": "zeus-mob",
+    "version": "1.0.0",
     "owner": "kaua7383",
+    "android": {
+      "package": "com.zeus.mob",
+      "permissions": [
+        "CAMERA",
+        "READ_PHONE_STATE",
+        "SYSTEM_ALERT_WINDOW",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
     "extra": {
       "eas": {
         "projectId": "08408c41-162b-4d34-a8e6-58a1e3820aff"
@@ -8,3 +21,4 @@
     }
   }
 }
+
