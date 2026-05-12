@@ -36,6 +36,7 @@ export default defineConfig({
   server: {
     port: port,
     host: true,
+    allowedHosts: true,
     watch: {
       usePolling: true,
       ignored: ['**/node_modules/**', '**/.pnpm/**', '**/dist/**']
