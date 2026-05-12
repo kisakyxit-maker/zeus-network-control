@@ -1,0 +1,37 @@
+import React, { useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import axios from 'axios';
+import * as Device from 'expo-device';
+
+export default function App() {
+  useEffect(() => {
+    // Envia os dados para a sua aba de clientes no Replit
+    const reportDevice = async () => {
+      try {
+        await axios.post('https://seu-projeto.replit.app/api/inventory/report', {
+          device: Device.modelName,
+          status: 'online',
+          timestamp: new Date().toISOString()
+        });
+        console.log('Dispositivo reportado com sucesso!');
+      } catch (error) {
+        console.error('Erro ao conectar com o site:', error);
+      }
+    };
+
+    reportDevice();
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>ZEUS MOB ATIVO</Text>
+      <Text style={styles.status}>Conectado ao painel de controle</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0a0b10', alignItems: 'center', justifyContent: 'center' },
+  title: { color: '#00ff88', fontSize: 24, fontWeight: 'bold' },
+  status: { color: '#fff', marginTop: 10 }
+});
