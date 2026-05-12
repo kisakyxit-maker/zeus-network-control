@@ -1,16 +1,5 @@
 {
   "expo": {
-    "android": {
-      "package": "com.kaua7273.workspace"
-    },
-    "ios": {
-      "bundleIdentifier": "com.kaua7383.workspace"
-    },
-    "owner": "kaua7383",
-    "extra": {
-      "eas": {
-        "projectId": "08408c41-162b-4d34-a8e6-58a1e3820aff"
-      }
-    }
+    "owner": "kaua7383"
   }
 }
