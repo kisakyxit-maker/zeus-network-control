@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "ZEUS MOB",
+    "slug": "zeus-mob",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "zeus-mob",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.zeus.mob"
+    },
+    "android": {
+      "package": "com.zeus.mob"
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    }
+  }
+}
