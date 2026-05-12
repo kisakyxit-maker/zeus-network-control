@@ -1,114 +1,151 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider, useAuth } from "@/context/auth";
-import NotFound from "@/pages/not-found";
-import Dashboard from "@/pages/dashboard";
-import Clientes from "@/pages/clientes";
-import Login from "@/pages/login";
-import Register from "@/pages/register";
-import Members from "@/pages/members";
-import Administrador from "@/pages/administrador";
-import ApkGenerator from "@/pages/apk-generator";
-import Meeting from "@/pages/meeting";
+import React from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { Feather } from '@expo/vector-icons';
 
-const queryClient = new QueryClient();
-
-function ProtectedRoute({
-  component: Component,
-  adminOnly = false,
-}: {
-  component: React.ComponentType;
-  adminOnly?: boolean;
-}) {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          backgroundColor: "#000",
-          color: "#00ff88",
-          fontFamily: "monospace",
-          fontSize: 12,
-          letterSpacing: "0.15em",
-        }}
-      >
-        &gt; AUTENTICANDO...
-        <span
-          style={{
-            display: "inline-block",
-            marginLeft: 4,
-            animation: "blink 1s step-end infinite",
-          }}
-        >
-          _
-        </span>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Redirect to="/login" />;
-  }
-
-  if (user.role !== "admin" && user.status !== "approved") {
-    return <Redirect to="/login" />;
-  }
-
-  if (adminOnly && user.role !== "admin") {
-    return <Redirect to="/" />;
-  }
-
-  return <Component />;
-}
-
-function Router() {
+export default function App() {
   return (
-    <Switch>
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/">
-        <ProtectedRoute component={Dashboard} />
-      </Route>
-      <Route path="/clientes">
-        <ProtectedRoute component={Clientes} />
-      </Route>
-      <Route path="/members">
-        <ProtectedRoute component={Members} adminOnly />
-      </Route>
-      <Route path="/administrador">
-        <ProtectedRoute component={Administrador} adminOnly />
-      </Route>
-      <Route path="/meeting">
-        <ProtectedRoute component={Meeting} />
-      </Route>
-      <Route path="/apk-generator">
-        <ProtectedRoute component={ApkGenerator} adminOnly />
-      </Route>
-      <Route component={NotFound} />
-    </Switch>
+    <LinearGradient 
+      colors={['#0a0b10', '#1a1c24']} 
+      style={styles.container}
+    >
+      <StatusBar barStyle="light-content" />
+      <SafeAreaView style={styles.content}>
+
+        {/* Card Principal ZEUS MOB */}
+        <BlurView intensity={25} tint="dark" style={styles.glassCard}>
+          <View style={styles.header}>
+            <Text style={styles.title}>
+              ZEUS <Text style={{color: '#00ff88'}}>MOB</Text>
+            </Text>
+            <Feather name="shield" size={24} color="#00ff88" />
+          </View>
+
+          <Text style={styles.subtitle}>Sistema de Monitoramento Ativo</Text>
+
+          <View style={styles.divider} />
+
+          <View style={styles.infoBox}>
+            <View style={styles.statusRow}>
+              <View style={styles.dot} />
+              <Text style={styles.statusText}>SERVIDOR ONLINE</Text>
+            </View>
+            <Text style={styles.version}>v2.0.4 - Alpha</Text>
+          </View>
+        </BlurView>
+
+        {/* Botões de Ação */}
+        <TouchableOpacity style={styles.neonButton} activeOpacity={0.8}>
+          <Text style={styles.buttonText}>INICIAR DASHBOARD</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>CONFIGURAÇÕES</Text>
+        </TouchableOpacity>
+
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "") }>
-          <AuthProvider>
-            <Router />
-          </AuthProvider>
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-}
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  glassCard: {
+    width: '100%',
+    padding: 25,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+    marginBottom: 40,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: 2,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#888b94',
+    marginTop: 5,
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(0, 255, 136, 0.2)',
+    marginVertical: 25,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#00ff88',
+    marginRight: 10,
+    shadowColor: '#00ff88',
+    shadowRadius: 5,
+    shadowOpacity: 1,
+  },
+  statusText: {
+    color: '#00ff88',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  version: {
+    color: 'rgba(255, 255, 255, 0.3)',
+    fontSize: 10,
+  },
+  neonButton: {
+    width: '100%',
+    height: 65,
+    backgroundColor: '#00ff88',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#00ff88',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 10,
+    marginBottom: 15,
+  },
+  buttonText: {
+    color: '#0a0b10',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+  },
+  secondaryButton: {
+    padding: 15,
+  },
+  secondaryButtonText: {
+    color: '#888b94',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 1,
+  }
+});
 
-export default App;

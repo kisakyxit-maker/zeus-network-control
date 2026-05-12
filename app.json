@@ -8,6 +8,9 @@
     "android": {
       "package": "com.kaua7273.workspace"
     },
-    "owner": "kaua9282"
+    "owner": "kaua9282",
+    "ios": {
+      "bundleIdentifier": "com.kaua7273.workspace"
+    }
   }
 }
