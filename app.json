@@ -1,5 +1,10 @@
 {
   "expo": {
-    "owner": "kaua7383"
+    "owner": "kaua7383",
+    "extra": {
+      "eas": {
+        "projectId": "08408c41-162b-4d34-a8e6-58a1e3820aff"
+      }
+    }
   }
 }
