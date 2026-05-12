@@ -115,7 +115,7 @@ export default function Dashboard() {
           }}
         >
           <div className="scanline-overlay" />
-          <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 12 }}>
+          <div className="grid-responsive-hero">
             <div>
               <div style={{ fontSize: 11, color: "#6c798d", letterSpacing: "0.22em", marginBottom: 10 }}>
                 UI / UX CONTROL SURFACE
@@ -134,14 +134,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.1fr 0.9fr",
-            gap: 10,
-            marginBottom: 12,
-          }}
-        >
+        <div className="grid-responsive-2" style={{ marginBottom: 12 }}>
           <Panel>
             <PanelHeader>
               <span>&gt; APRESENTAÇÃO VISUAL</span>
@@ -195,7 +188,7 @@ export default function Dashboard() {
 
         <StatsBar />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 12 }}>
+        <div className="grid-responsive-cards" style={{ marginBottom: 12 }}>
           {[
             { href: "/clientes", icon: "📱", label: "CLIENTES", desc: `${total} dispositivos`, color: G },
             { href: "/administrador", icon: "🔐", label: "ADMINISTRADOR", desc: "Logs & Events", color: "#44aaff" },
@@ -234,13 +227,13 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 10 }}>
+        <div className="grid-responsive-side">
           <Panel>
             <PanelHeader>
               <span>&gt; STATUS DO SISTEMA</span>
               <span style={{ color: "#445", fontSize: 8, letterSpacing: "0.08em" }}>REALTIME HEALTH</span>
             </PanelHeader>
-            <div style={{ padding: 12, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+            <div className="grid-responsive-status" style={{ padding: 12 }}>
               {[
                 { k: "CORE ENGINE", v: "RUNNING", d: "Pipeline principal operacional", c: G },
                 { k: "SYNC QUEUE", v: "98%", d: "Sincronização com baixa latência", c: "#44aaff" },
@@ -335,7 +328,7 @@ export default function Dashboard() {
           </Panel>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+        <div className="grid-responsive-2-equal" style={{ marginTop: 10 }}>
           <EventConsole height={420} />
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <Panel>

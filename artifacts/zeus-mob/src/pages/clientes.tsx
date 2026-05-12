@@ -4,6 +4,7 @@ import { useListDevices, getListDevicesQueryKey } from "@workspace/api-client-re
 import { useSocket } from "@/hooks/use-socket";
 import { useQueryClient } from "@tanstack/react-query";
 import DeviceTools from "@/components/device-tools";
+import { EventConsole } from "@/components/event-console";
 
 const G = "#00ff88";
 const RED = "#ff3333";
@@ -218,7 +219,7 @@ export default function Clientes() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
             gap: 10,
           }}
         >
@@ -231,6 +232,10 @@ export default function Clientes() {
           ))}
         </div>
       )}
+
+      <div style={{ marginTop: 14 }}>
+        <EventConsole height={320} />
+      </div>
     </Layout>
   );
 }

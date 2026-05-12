@@ -26,6 +26,7 @@ export function Sidebar() {
 
   return (
     <aside
+      className="sidebar-mobile-hide"
       style={{
         width: collapsed ? 44 : 170,
         minWidth: collapsed ? 44 : 170,
@@ -154,8 +155,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       }}
     >
       <Sidebar />
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
-        <div style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden", minWidth: 0 }}>
+        <div className="main-mobile-pad" style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
           {children}
         </div>
       </main>
