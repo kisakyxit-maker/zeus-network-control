@@ -5,6 +5,12 @@
     },
     "ios": {
       "bundleIdentifier": "com.kaua7273.workspace"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3945f02a-d838-4586-80c6-0d1d84415307"
+      }
+    },
+    "owner": "kaua7273"
   }
 }
