@@ -11,12 +11,10 @@
   "main": "expo/AppEntry",
   "devDependencies": {
     "prettier": "^3.8.1",
-    "typescript": "~5.9.2",
-    "vite": "catalog:"
+    "typescript": "~5.9.2"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
-    "@expo/ngrok": "^4.1.0",
     "@expo/vector-icons": "^15.1.1",
     "@types/react": "~19.1.10",
     "expo": "54.0.34",
@@ -24,11 +22,9 @@
     "expo-blur": "^55.0.14",
     "expo-device": "~8.0.10",
     "expo-linear-gradient": "^55.0.13",
-    "http": "0.0.1-security",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-web": "^0.21.0",
-    "socket.io": "^4.8.3"
+    "react-native-web": "^0.21.0"
   }
 }
