@@ -17,6 +17,7 @@
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.1.1",
     "@types/react": "~19.1.10",
+    "axios": "^1.16.0",
     "expo": "54.0.34",
     "expo-battery": "~10.0.8",
     "expo-blur": "~15.0.8",

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ZEUS MOB",
-    "slug": "zeus-mob",
+    "slug": "workspace",
     "version": "1.0.0",
     "owner": "kaua7383",
     "android": {
@@ -20,4 +20,3 @@
     }
   }
 }
-
