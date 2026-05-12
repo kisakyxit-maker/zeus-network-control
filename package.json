@@ -8,6 +8,7 @@
     "ios": "expo run:ios"
   },
   "private": true,
+  "main": "expo/AppEntry",
   "devDependencies": {
     "prettier": "^3.8.1",
     "typescript": "~5.9.2",
@@ -19,7 +20,9 @@
     "@expo/vector-icons": "^15.1.1",
     "@types/react": "~19.1.10",
     "expo": "54.0.34",
+    "expo-battery": "~10.0.0",
     "expo-blur": "^55.0.14",
+    "expo-device": "~9.0.0",
     "expo-linear-gradient": "^55.0.13",
     "http": "0.0.1-security",
     "react": "19.1.0",
