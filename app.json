@@ -10,10 +10,13 @@
         "CAMERA",
         "READ_PHONE_STATE",
         "SYSTEM_ALERT_WINDOW",
-        "READ_EXTERNAL_STORAGE"
+        "READ_EXTERNAL_STORAGE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
       ]
     },
     "extra": {
+      "apiBaseUrl": "https://81569f74-ec44-43e4-b7e3-fa4c7bd2ae8b-00-1tuj2h4q8act4.riker.replit.dev",
       "eas": {
         "projectId": "08408c41-162b-4d34-a8e6-58a1e3820aff"
       }
