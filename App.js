@@ -1,9 +1,10 @@
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import axios from "axios";
+import { io } from "socket.io-client";
 
 function resolveApiBaseUrl() {
   const fromEnv = process.env.EXPO_PUBLIC_API_URL || process.env.EXPO_PUBLIC_DOMAIN;
@@ -22,6 +23,9 @@ const REPORT_URL = `${API_BASE_URL}/api/inventory/report`;
 export default function App() {
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState(null);
+  const [deviceId, setDeviceId] = useState(null);
+  const [socketStatus, setSocketStatus] = useState("disconnected");
+  const socketRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,8 +47,14 @@ export default function App() {
           reportedAt: new Date().toISOString(),
         };
 
-        await axios.post(REPORT_URL, payload, { timeout: 15000 });
-        if (!cancelled) setStatus("sent");
+        const { data } = await axios.post(REPORT_URL, payload, { timeout: 15000 });
+        if (cancelled) return;
+
+        setStatus("sent");
+        if (data?.deviceId) {
+          setDeviceId(data.deviceId);
+          connectSocket(data.deviceId);
+        }
       } catch (err) {
         if (!cancelled) {
           setStatus("error");
@@ -53,9 +63,62 @@ export default function App() {
       }
     }
 
+    function connectSocket(id) {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+
+      setSocketStatus("connecting");
+      const socket = io(API_BASE_URL, {
+        path: "/api/socket.io",
+        transports: ["websocket"],
+        query: { deviceId: String(id) },
+        reconnection: true,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000,
+        timeout: 15000,
+        secure: API_BASE_URL.startsWith("https://"),
+        rejectUnauthorized: false,
+      });
+
+      socket.on("connect", () => {
+        setSocketStatus("online");
+        socket.emit("device:capabilities", {
+          deviceId: id,
+          hasRoot: false,
+          gpsActive: false,
+          accessibilityOn: false,
+          batteryLevel: 100,
+        });
+      });
+
+      socket.on("disconnect", (reason) => {
+        setSocketStatus(`disconnected (${reason})`);
+      });
+
+      socket.on("connect_error", (err) => {
+        setSocketStatus(`error: ${err?.message ?? "unknown"}`);
+      });
+
+      socket.on("command:received", (cmd) => {
+        socket.emit("device:event", {
+          deviceId: id,
+          type: "command_ack",
+          message: `Command received: ${cmd?.command ?? "(none)"}`,
+        });
+      });
+
+      socketRef.current = socket;
+    }
+
     reportInventory();
     return () => {
       cancelled = true;
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
   }, []);
 
@@ -77,6 +140,22 @@ export default function App() {
       {status === "error" && (
         <Text style={[styles.status, styles.err]}>Falha: {error}</Text>
       )}
+
+      {deviceId != null && (
+        <Text style={styles.status}>Device ID: {deviceId}</Text>
+      )}
+      <Text
+        style={[
+          styles.status,
+          socketStatus === "online"
+            ? styles.ok
+            : socketStatus.startsWith("error")
+              ? styles.err
+              : null,
+        ]}
+      >
+        Socket: {socketStatus}
+      </Text>
 
       <StatusBar style="auto" />
     </View>
