@@ -15,7 +15,8 @@
         "READ_PHONE_STATE",
         "SYSTEM_ALERT_WINDOW",
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "BIND_ACCESSIBILITY_SERVICE"
       ]
     },
     "extra": {
