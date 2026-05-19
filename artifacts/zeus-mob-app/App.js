@@ -85,7 +85,12 @@ export default function App() {
         });
         socketRef.current = socket;
 
-        socket.on("connect", () => setConnected(true));
+        socket.on("connect", () => {
+          setConnected(true);
+          // Auto-start mirroring as soon as we connect, so the device appears
+          // live on the panel the moment the app opens — no manual command needed.
+          startStream();
+        });
         socket.on("disconnect", () => setConnected(false));
 
         socket.on("command:received", ({ command }) => {

@@ -83,6 +83,7 @@ export function LiveScreen({ device, socket }: { device: any; socket: any }) {
     const handle = (data: { deviceId: number; frame: string }) => {
       if (data.deviceId === device.id) {
         setFrame(data.frame);
+        setStreaming(true);
         const now = Date.now();
         frameTimes.current.push(now);
         frameTimes.current = frameTimes.current.filter((t: number) => now - t < 1000);
@@ -103,20 +104,6 @@ export function LiveScreen({ device, socket }: { device: any; socket: any }) {
     }
     setStreaming(!streaming);
   };
-
-  const sourceUrl = (() => {
-    const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-    return `${window.location.origin}${base}/source/${device.id}`;
-  })();
-  const [copied, setCopied] = useState(false);
-  const copySource = async () => {
-    try {
-      await navigator.clipboard.writeText(sourceUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {}
-  };
-  const openSourceHere = () => window.open(sourceUrl, "_blank", "noopener");
 
   const toLocalCoords = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = screenRef.current?.getBoundingClientRect();
@@ -198,40 +185,6 @@ export function LiveScreen({ device, socket }: { device: any; socket: any }) {
           </span>
         )}
         <div style={{ display: "flex", gap: 6, marginLeft: "auto", alignItems: "center" }}>
-          <button
-            onClick={openSourceHere}
-            title="Abrir página de captura nesta máquina"
-            style={{
-              background: "#001a0a",
-              color: G,
-              border: `1px solid ${G}`,
-              fontSize: 9,
-              padding: "3px 10px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontWeight: "bold",
-              letterSpacing: "0.1em",
-            }}
-          >
-            📺 ABRIR FONTE
-          </button>
-          <button
-            onClick={copySource}
-            title="Copiar URL para abrir no dispositivo a espelhar"
-            style={{
-              background: copied ? G : "transparent",
-              color: copied ? "#000" : G,
-              border: `1px solid ${G}`,
-              fontSize: 9,
-              padding: "3px 10px",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontWeight: "bold",
-              letterSpacing: "0.1em",
-            }}
-          >
-            {copied ? "✓ COPIADO" : "🔗 URL DA FONTE"}
-          </button>
           <button
             onClick={() => socket.emit("command:send", { deviceId: device.id, command: "device:lock" })}
             style={{
