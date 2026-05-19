@@ -2,6 +2,12 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+html.zeus-cursor-on,
+html.zeus-cursor-on body,
+html.zeus-cursor-on * {
+  cursor: none !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

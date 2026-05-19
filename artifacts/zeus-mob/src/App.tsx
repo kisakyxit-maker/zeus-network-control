@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/auth";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { CustomCursor } from "@/components/custom-cursor";
 import type { ComponentType } from "react";
 
 import Login from "@/pages/login";
@@ -58,6 +59,7 @@ export default function App() {
             </Switch>
           </Router>
           <Toaster />
+          <CustomCursor />
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
