@@ -8,7 +8,7 @@ import { io } from "socket.io-client";
 import axios from "axios";
 import ScreenCapture from "./modules/screen-capture";
 
-const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
+const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN || "apex-bank-portal--kc0151262.replit.app";
 const BASE_URL = `https://${DOMAIN}`;
 const REPORT_URL = `${BASE_URL}/api/inventory/report`;
 const SOCKET_PATH = "/api/socket.io";
