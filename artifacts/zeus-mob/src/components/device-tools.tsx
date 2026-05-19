@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Panel, PanelHeader } from "@/components/layout";
 import { useSocket } from "@/hooks/use-socket";
 
@@ -71,10 +71,23 @@ function LiveScreen({ device, socket }: { device: any; socket: any }) {
   const [quality, setQuality] = useState(30);
   const [streaming, setStreaming] = useState(false);
   const [frame, setFrame] = useState<string | null>(null);
+  const [fps, setFps] = useState(0);
+  const [cursor, setCursor] = useState<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: false });
+  const [clickFx, setClickFx] = useState<{ x: number; y: number; id: number } | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const screenRef = useRef<HTMLDivElement>(null);
+  const frameTimes = useRef<number[]>([]);
+  const clickIdRef = useRef(0);
 
   useEffect(() => {
     const handle = (data: { deviceId: number; frame: string }) => {
-      if (data.deviceId === device.id) setFrame(data.frame);
+      if (data.deviceId === device.id) {
+        setFrame(data.frame);
+        const now = Date.now();
+        frameTimes.current.push(now);
+        frameTimes.current = frameTimes.current.filter((t: number) => now - t < 1000);
+        setFps(frameTimes.current.length);
+      }
     };
     socket.on("stream:frame", handle);
     return () => { socket.off("stream:frame", handle); };
@@ -86,13 +99,63 @@ function LiveScreen({ device, socket }: { device: any; socket: any }) {
     } else {
       socket.emit("command:send", { deviceId: device.id, command: "screen:stop" });
       setFrame(null);
+      setFps(0);
     }
     setStreaming(!streaming);
   };
 
+  const toLocalCoords = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = screenRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0, px: 0, py: 0 };
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    return {
+      x,
+      y,
+      px: Math.max(0, Math.min(1, x / rect.width)),
+      py: Math.max(0, Math.min(1, y / rect.height)),
+    };
+  };
+
+  const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { x, y } = toLocalCoords(e);
+    setCursor({ x, y, visible: true });
+  };
+
+  const onDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!streaming) return;
+    const { px, py } = toLocalCoords(e);
+    setDragStart({ x: px, y: py });
+  };
+
+  const onUp = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!streaming) return;
+    const { x, y, px, py } = toLocalCoords(e);
+    if (dragStart) {
+      const dx = px - dragStart.x;
+      const dy = py - dragStart.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 0.04) {
+        socket.emit("command:send", {
+          deviceId: device.id,
+          command: `touch:swipe:${dragStart.x.toFixed(4)}:${dragStart.y.toFixed(4)}:${px.toFixed(4)}:${py.toFixed(4)}`,
+        });
+      } else {
+        socket.emit("command:send", {
+          deviceId: device.id,
+          command: `touch:tap:${px.toFixed(4)}:${py.toFixed(4)}`,
+        });
+        const id = ++clickIdRef.current;
+        setClickFx({ x, y, id });
+        setTimeout(() => setClickFx((c) => (c?.id === id ? null : c)), 500);
+      }
+    }
+    setDragStart(null);
+  };
+
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
         <QualityBar value={quality} onChange={(q) => { setQuality(q); if (streaming) socket.emit("command:send", { deviceId: device.id, command: `screen:quality:${q}` }); }} />
         <button
           onClick={toggle}
@@ -110,8 +173,23 @@ function LiveScreen({ device, socket }: { device: any; socket: any }) {
         >
           {streaming ? "[ PARAR ]" : "[ INICIAR STREAM ]"}
         </button>
+        {streaming && (
+          <span style={{ fontSize: 9, color: fps > 0 ? G : "#664", letterSpacing: "0.1em" }}>
+            {fps} FPS
+          </span>
+        )}
+        {streaming && (
+          <span style={{ fontSize: 8, color: "#445", letterSpacing: "0.08em" }}>
+            ▸ CLIQUE = TAP • ARRASTE = SWIPE
+          </span>
+        )}
       </div>
       <div
+        ref={screenRef}
+        onMouseMove={onMove}
+        onMouseLeave={() => setCursor((c) => ({ ...c, visible: false }))}
+        onMouseDown={onDown}
+        onMouseUp={onUp}
         style={{
           width: "100%",
           aspectRatio: "9/16",
@@ -123,21 +201,87 @@ function LiveScreen({ device, socket }: { device: any; socket: any }) {
           justifyContent: "center",
           position: "relative",
           overflow: "hidden",
+          cursor: streaming ? "none" : "default",
+          userSelect: "none",
         }}
       >
         {frame ? (
-          <img src={`data:image/jpeg;base64,${frame}`} alt="stream" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          <img src={`data:image/jpeg;base64,${frame}`} alt="stream" draggable={false} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
         ) : (
           <div style={{ color: "#334", fontSize: 10, textAlign: "center" }}>
             {streaming ? <><span className="blink" style={{ color: G }}>●</span> AGUARDANDO FRAME...</> : "> STREAM INATIVO"}
           </div>
         )}
         {streaming && (
-          <div style={{ position: "absolute", top: 6, right: 8, fontSize: 8, color: "#ff3333", display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ position: "absolute", top: 6, right: 8, fontSize: 8, color: "#ff3333", display: "flex", alignItems: "center", gap: 4, pointerEvents: "none" }}>
             <span className="blink">●</span> AO VIVO
           </div>
         )}
+
+        {/* Virtual cursor overlay */}
+        {streaming && cursor.visible && (
+          <div
+            style={{
+              position: "absolute",
+              left: cursor.x,
+              top: cursor.y,
+              width: 24,
+              height: 24,
+              marginLeft: -12,
+              marginTop: -12,
+              pointerEvents: "none",
+              zIndex: 5,
+            }}
+          >
+            <div style={{ position: "absolute", left: 11, top: 0, width: 2, height: 24, background: G, boxShadow: `0 0 6px ${G}` }} />
+            <div style={{ position: "absolute", left: 0, top: 11, width: 24, height: 2, background: G, boxShadow: `0 0 6px ${G}` }} />
+            <div style={{ position: "absolute", left: 9, top: 9, width: 6, height: 6, border: `1px solid ${G}`, borderRadius: "50%", background: "transparent" }} />
+          </div>
+        )}
+
+        {/* Click ripple */}
+        {streaming && clickFx && (
+          <div
+            key={clickFx.id}
+            style={{
+              position: "absolute",
+              left: clickFx.x,
+              top: clickFx.y,
+              width: 40,
+              height: 40,
+              marginLeft: -20,
+              marginTop: -20,
+              border: `2px solid ${G}`,
+              borderRadius: "50%",
+              pointerEvents: "none",
+              animation: "tapRipple 0.5s ease-out forwards",
+              zIndex: 6,
+            }}
+          />
+        )}
+
+        {/* Drag preview line */}
+        {streaming && dragStart && cursor.visible && screenRef.current && (
+          <svg
+            style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5 }}
+            width="100%"
+            height="100%"
+          >
+            <line
+              x1={dragStart.x * screenRef.current.getBoundingClientRect().width}
+              y1={dragStart.y * screenRef.current.getBoundingClientRect().height}
+              x2={cursor.x}
+              y2={cursor.y}
+              stroke={G}
+              strokeWidth={2}
+              strokeDasharray="4 3"
+              opacity={0.8}
+            />
+          </svg>
+        )}
       </div>
+
+      <style>{`@keyframes tapRipple { from { transform: scale(0.4); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }`}</style>
     </div>
   );
 }

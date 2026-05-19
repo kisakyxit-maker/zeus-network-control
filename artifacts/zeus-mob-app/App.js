@@ -96,6 +96,9 @@ export default function App() {
             if (!Number.isNaN(q) && q > 0) {
               qualityRef.current = q;
               setQuality(q);
+            } else {
+              qualityRef.current = 30;
+              setQuality(30);
             }
             startStream();
           } else if (command === "screen:stop") {
@@ -106,6 +109,12 @@ export default function App() {
               qualityRef.current = q;
               setQuality(q);
             }
+          } else if (command.startsWith("touch:tap:")) {
+            const [, , x, y] = command.split(":");
+            handleRemoteTap(Number(x), Number(y));
+          } else if (command.startsWith("touch:swipe:")) {
+            const [, , x1, y1, x2, y2] = command.split(":");
+            handleRemoteSwipe(Number(x1), Number(y1), Number(x2), Number(y2));
           }
         });
       } catch (err) {
@@ -123,6 +132,32 @@ export default function App() {
       if (socketRef.current) socketRef.current.disconnect();
     };
   }, []);
+
+  const [lastTouch, setLastTouch] = useState(null);
+
+  function handleRemoteTap(x, y) {
+    if (Number.isNaN(x) || Number.isNaN(y)) return;
+    setLastTouch({ kind: "tap", x, y, at: Date.now() });
+    if (socketRef.current && deviceIdRef.current) {
+      socketRef.current.emit("device:event", {
+        deviceId: deviceIdRef.current,
+        type: "touch",
+        message: `Remote TAP @ (${(x * 100).toFixed(1)}%, ${(y * 100).toFixed(1)}%)`,
+      });
+    }
+  }
+
+  function handleRemoteSwipe(x1, y1, x2, y2) {
+    if ([x1, y1, x2, y2].some((n) => Number.isNaN(n))) return;
+    setLastTouch({ kind: "swipe", x: x2, y: y2, x1, y1, at: Date.now() });
+    if (socketRef.current && deviceIdRef.current) {
+      socketRef.current.emit("device:event", {
+        deviceId: deviceIdRef.current,
+        type: "touch",
+        message: `Remote SWIPE (${(x1 * 100).toFixed(1)}%, ${(y1 * 100).toFixed(1)}%) → (${(x2 * 100).toFixed(1)}%, ${(y2 * 100).toFixed(1)}%)`,
+      });
+    }
+  }
 
   function startStream() {
     if (streamingRef.current) return;
@@ -209,6 +244,25 @@ export default function App() {
           <View style={styles.recDot} />
           <Text style={styles.streamText}>STREAMING • Q{quality} • {frameCount}f</Text>
         </View>
+      )}
+
+      {lastTouch && Date.now() - lastTouch.at < 1500 && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: `${lastTouch.x * 100}%`,
+            top: `${lastTouch.y * 100}%`,
+            width: 36,
+            height: 36,
+            marginLeft: -18,
+            marginTop: -18,
+            borderRadius: 18,
+            borderWidth: 2,
+            borderColor: "#16a34a",
+            backgroundColor: "rgba(22,163,74,0.25)",
+          }}
+        />
       )}
 
       <StatusBar style="auto" />
