@@ -17,6 +17,7 @@ import Administrador from "@/pages/administrador";
 import Members from "@/pages/members";
 import Meeting from "@/pages/meeting";
 import ApkGenerator from "@/pages/apk-generator";
+import Source from "@/pages/source";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ export default function App() {
               <Route path="/clientes">{() => <ProtectedRoute component={Clientes} />}</Route>
               <Route path="/meeting">{() => <ProtectedRoute component={Meeting} />}</Route>
               <Route path="/apk-generator">{() => <AdminRoute component={ApkGenerator} />}</Route>
+              <Route path="/source/:id" component={Source} />
               <Route path="/administrador">{() => <AdminRoute component={Administrador} />}</Route>
               <Route path="/members">{() => <AdminRoute component={Members} />}</Route>
               <Route component={NotFound} />
