@@ -206,7 +206,7 @@ function LiveScreen({ device, socket }: { device: any; socket: any }) {
         }}
       >
         {frame ? (
-          <img src={`data:image/jpeg;base64,${frame}`} alt="stream" draggable={false} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
+          <img src={frame.startsWith("data:image") ? frame : `data:image/jpeg;base64,${frame}`} alt="stream" draggable={false} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
         ) : (
           <div style={{ color: "#334", fontSize: 10, textAlign: "center" }}>
             {streaming ? <><span className="blink" style={{ color: G }}>●</span> AGUARDANDO FRAME...</> : "> STREAM INATIVO"}

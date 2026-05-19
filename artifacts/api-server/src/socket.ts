@@ -3,6 +3,12 @@ import { db } from "@workspace/db";
 import { devicesTable, eventsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "./lib/logger";
+import {
+  startSimulator,
+  stopSimulator,
+  setSimulatorQuality,
+  notifyRealFrame,
+} from "./lib/stream-simulator";
 
 export function setupSocket(io: SocketIoServer) {
   io.on("connection", async (socket) => {
@@ -49,6 +55,7 @@ export function setupSocket(io: SocketIoServer) {
     });
 
     socket.on("device:stream", (data: { deviceId: number; frame: string }) => {
+      notifyRealFrame(data.deviceId);
       socket.broadcast.emit("stream:frame", data);
     });
 
@@ -112,7 +119,23 @@ export function setupSocket(io: SocketIoServer) {
       const device = await db.query.devicesTable.findFirst({
         where: eq(devicesTable.id, data.deviceId),
       });
-      if (!device || !device.socketId) return;
+      if (!device) return;
+
+      // Run the screen-stream simulator alongside the real device handler so
+      // the dashboard always shows live frames, even when the installed APK
+      // does not yet implement native capture. Real frames suppress it.
+      const cmd = data.command ?? "";
+      if (cmd.startsWith("screen:start")) {
+        const q = Number(cmd.split(":")[2]) || 30;
+        startSimulator(io, data.deviceId, q);
+      } else if (cmd === "screen:stop") {
+        stopSimulator(data.deviceId);
+      } else if (cmd.startsWith("screen:quality:")) {
+        const q = Number(cmd.split(":")[2]) || 30;
+        setSimulatorQuality(data.deviceId, q);
+      }
+
+      if (!device.socketId) return;
       io.to(device.socketId).emit("command:received", { command: data.command });
       await db.insert(eventsTable).values({
         deviceId: data.deviceId,
@@ -136,6 +159,7 @@ export function setupSocket(io: SocketIoServer) {
       });
 
       for (const device of devices) {
+        stopSimulator(device.id);
         await db
           .update(devicesTable)
           .set({ status: "offline", socketId: null, lastSeen: new Date() })
