@@ -8,6 +8,10 @@ import {
   stopSimulator,
   setSimulatorQuality,
   notifyRealFrame,
+  lockSimulator,
+  unlockSimulator,
+  simulateTap,
+  simulateSwipe,
 } from "./lib/stream-simulator";
 
 export function setupSocket(io: SocketIoServer) {
@@ -133,6 +137,23 @@ export function setupSocket(io: SocketIoServer) {
       } else if (cmd.startsWith("screen:quality:")) {
         const q = Number(cmd.split(":")[2]) || 30;
         setSimulatorQuality(data.deviceId, q);
+      } else if (cmd === "device:lock") {
+        lockSimulator(data.deviceId);
+      } else if (cmd === "device:unlock") {
+        unlockSimulator(data.deviceId);
+      } else if (cmd.startsWith("touch:tap:")) {
+        const [, , x, y] = cmd.split(":");
+        const fx = Number(x);
+        const fy = Number(y);
+        if (Number.isFinite(fx) && Number.isFinite(fy)) {
+          simulateTap(data.deviceId, fx, fy);
+        }
+      } else if (cmd.startsWith("touch:swipe:")) {
+        const [, , x1, y1, x2, y2] = cmd.split(":");
+        const a = [x1, y1, x2, y2].map(Number);
+        if (a.every((n) => Number.isFinite(n))) {
+          simulateSwipe(data.deviceId, a[0]!, a[1]!, a[2]!, a[3]!);
+        }
       }
 
       if (!device.socketId) return;

@@ -183,6 +183,40 @@ function LiveScreen({ device, socket }: { device: any; socket: any }) {
             ▸ CLIQUE = TAP • ARRASTE = SWIPE
           </span>
         )}
+        <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+          <button
+            onClick={() => socket.emit("command:send", { deviceId: device.id, command: "device:lock" })}
+            style={{
+              background: "#1a0000",
+              color: "#ff4444",
+              border: `1px solid #ff4444`,
+              fontSize: 9,
+              padding: "3px 10px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontWeight: "bold",
+              letterSpacing: "0.1em",
+            }}
+          >
+            🔒 BLOQUEAR
+          </button>
+          <button
+            onClick={() => socket.emit("command:send", { deviceId: device.id, command: "device:unlock" })}
+            style={{
+              background: "#001a0a",
+              color: G,
+              border: `1px solid ${G}`,
+              fontSize: 9,
+              padding: "3px 10px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontWeight: "bold",
+              letterSpacing: "0.1em",
+            }}
+          >
+            🔓 DESBLOQUEAR
+          </button>
+        </div>
       </div>
       <div
         ref={screenRef}
