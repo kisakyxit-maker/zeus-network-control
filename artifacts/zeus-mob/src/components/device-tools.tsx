@@ -253,25 +253,31 @@ export function LiveScreen({ device, socket }: { device: any; socket: any }) {
           </div>
         )}
 
-        {/* Virtual cursor overlay */}
+        {/* Virtual cursor overlay — classic OS arrow pointer */}
         {streaming && cursor.visible && (
-          <div
+          <svg
+            width="22"
+            height="28"
+            viewBox="0 0 22 28"
             style={{
               position: "absolute",
               left: cursor.x,
               top: cursor.y,
-              width: 24,
-              height: 24,
-              marginLeft: -12,
-              marginTop: -12,
+              marginLeft: -2,
+              marginTop: -2,
               pointerEvents: "none",
               zIndex: 5,
+              filter: `drop-shadow(0 0 4px ${G}) drop-shadow(0 0 2px #000)`,
             }}
           >
-            <div style={{ position: "absolute", left: 11, top: 0, width: 2, height: 24, background: G, boxShadow: `0 0 6px ${G}` }} />
-            <div style={{ position: "absolute", left: 0, top: 11, width: 24, height: 2, background: G, boxShadow: `0 0 6px ${G}` }} />
-            <div style={{ position: "absolute", left: 9, top: 9, width: 6, height: 6, border: `1px solid ${G}`, borderRadius: "50%", background: "transparent" }} />
-          </div>
+            <path
+              d="M2 2 L2 22 L7 17 L10.5 25 L13.5 23.5 L10 16 L17 16 Z"
+              fill="#ffffff"
+              stroke="#000000"
+              strokeWidth="1.2"
+              strokeLinejoin="round"
+            />
+          </svg>
         )}
 
         {/* Click ripple */}
