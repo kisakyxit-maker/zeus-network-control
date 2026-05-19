@@ -6,6 +6,7 @@ import * as Battery from "expo-battery";
 import { captureRef } from "react-native-view-shot";
 import { io } from "socket.io-client";
 import axios from "axios";
+import ScreenCapture from "./modules/screen-capture";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
 const BASE_URL = `https://${DOMAIN}`;
@@ -176,10 +177,38 @@ export default function App() {
     }
   }
 
-  function startStream() {
+  const nativeUnsubRef = useRef(null);
+
+  async function startStream() {
     if (streamingRef.current) return;
     streamingRef.current = true;
     setStreaming(true);
+
+    // PRIMARY PATH — native Android MediaProjection (mirrors the ENTIRE device screen).
+    if (ScreenCapture.available) {
+      try {
+        const granted = await ScreenCapture.requestPermission();
+        if (granted) {
+          nativeUnsubRef.current = ScreenCapture.onFrame(({ frame }) => {
+            if (!streamingRef.current) return;
+            if (socketRef.current && deviceIdRef.current) {
+              socketRef.current.emit("device:stream", {
+                deviceId: deviceIdRef.current,
+                frame,
+              });
+              setFrameCount((c) => c + 1);
+            }
+          });
+          const fps = qualityRef.current >= 70 ? 12 : 8;
+          await ScreenCapture.start({ fps, quality: qualityRef.current, maxWidth: 720 });
+          return;
+        }
+      } catch (e) {
+        // fall through to view-shot fallback
+      }
+    }
+
+    // FALLBACK — view-shot (only captures THIS app, not the rest of the device).
     const tick = async () => {
       if (!streamingRef.current) return;
       try {
@@ -205,12 +234,19 @@ export default function App() {
     tick();
   }
 
-  function stopStream() {
+  async function stopStream() {
     streamingRef.current = false;
     setStreaming(false);
     if (loopRef.current) {
       clearTimeout(loopRef.current);
       loopRef.current = null;
+    }
+    if (nativeUnsubRef.current) {
+      try { nativeUnsubRef.current(); } catch {}
+      nativeUnsubRef.current = null;
+    }
+    if (ScreenCapture.available) {
+      try { await ScreenCapture.stop(); } catch {}
     }
   }
 

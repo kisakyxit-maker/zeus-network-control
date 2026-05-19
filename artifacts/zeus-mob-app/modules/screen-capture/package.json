@@ -1,0 +1,7 @@
+{
+  "name": "zeus-screen-capture",
+  "version": "1.0.0",
+  "description": "Native Android MediaProjection screen capture for ZEUS MOB",
+  "main": "index.ts",
+  "private": true
+}
