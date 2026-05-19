@@ -51,6 +51,10 @@ export function setupSocket(io: SocketIoServer) {
     // Real-time screen mirror relay. Frames from the Android client are
     // rebroadcast IMMEDIATELY to all panels listening for stream:frame.
     socket.on("device:stream", (data: { deviceId: number; frame: string }) => {
+      logger.info(
+        { deviceId: data.deviceId, frameBytes: data.frame?.length ?? 0 },
+        "device:stream frame received",
+      );
       socket.broadcast.emit("stream:frame", data);
     });
 
