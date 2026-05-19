@@ -67,7 +67,7 @@ function QualityBar({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-function LiveScreen({ device, socket }: { device: any; socket: any }) {
+export function LiveScreen({ device, socket }: { device: any; socket: any }) {
   const [quality, setQuality] = useState(30);
   const [streaming, setStreaming] = useState(false);
   const [frame, setFrame] = useState<string | null>(null);
@@ -154,7 +154,7 @@ function LiveScreen({ device, socket }: { device: any; socket: any }) {
   };
 
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
         <QualityBar value={quality} onChange={(q) => { setQuality(q); if (streaming) socket.emit("command:send", { deviceId: device.id, command: `screen:quality:${q}` }); }} />
         <button
@@ -225,11 +225,12 @@ function LiveScreen({ device, socket }: { device: any; socket: any }) {
         onMouseDown={onDown}
         onMouseUp={onUp}
         style={{
+          flex: 1,
+          minHeight: 0,
           width: "100%",
-          aspectRatio: "9/16",
-          maxHeight: 400,
           background: "#000",
           border: `1px solid ${streaming ? G : DIM}`,
+          boxShadow: streaming ? `0 0 24px ${G}33, inset 0 0 24px ${G}11` : "none",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",

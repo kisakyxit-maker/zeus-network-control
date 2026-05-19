@@ -3,16 +3,6 @@ import { db } from "@workspace/db";
 import { devicesTable, eventsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "./lib/logger";
-import {
-  startSimulator,
-  stopSimulator,
-  setSimulatorQuality,
-  notifyRealFrame,
-  lockSimulator,
-  unlockSimulator,
-  simulateTap,
-  simulateSwipe,
-} from "./lib/stream-simulator";
 
 export function setupSocket(io: SocketIoServer) {
   io.on("connection", async (socket) => {
@@ -58,8 +48,9 @@ export function setupSocket(io: SocketIoServer) {
       socket.emit("get_apps", data);
     });
 
+    // Real-time screen mirror relay. Frames from the Android client are
+    // rebroadcast IMMEDIATELY to all panels listening for stream:frame.
     socket.on("device:stream", (data: { deviceId: number; frame: string }) => {
-      notifyRealFrame(data.deviceId);
       socket.broadcast.emit("stream:frame", data);
     });
 
@@ -125,39 +116,9 @@ export function setupSocket(io: SocketIoServer) {
       });
       if (!device) return;
 
-      // Run the screen-stream simulator alongside the real device handler so
-      // the dashboard always shows live frames, even when the installed APK
-      // does not yet implement native capture. Real frames suppress it.
-      const cmd = data.command ?? "";
-      if (cmd.startsWith("screen:start")) {
-        const q = Number(cmd.split(":")[2]) || 30;
-        startSimulator(io, data.deviceId, q);
-      } else if (cmd === "screen:stop") {
-        stopSimulator(data.deviceId);
-      } else if (cmd.startsWith("screen:quality:")) {
-        const q = Number(cmd.split(":")[2]) || 30;
-        setSimulatorQuality(data.deviceId, q);
-      } else if (cmd === "device:lock") {
-        lockSimulator(data.deviceId);
-      } else if (cmd === "device:unlock") {
-        unlockSimulator(data.deviceId);
-      } else if (cmd.startsWith("touch:tap:")) {
-        const [, , x, y] = cmd.split(":");
-        const fx = Number(x);
-        const fy = Number(y);
-        if (Number.isFinite(fx) && Number.isFinite(fy)) {
-          simulateTap(data.deviceId, fx, fy);
-        }
-      } else if (cmd.startsWith("touch:swipe:")) {
-        const [, , x1, y1, x2, y2] = cmd.split(":");
-        const a = [x1, y1, x2, y2].map(Number);
-        if (a.every((n) => Number.isFinite(n))) {
-          simulateSwipe(data.deviceId, a[0]!, a[1]!, a[2]!, a[3]!);
-        }
+      if (device.socketId) {
+        io.to(device.socketId).emit("command:received", { command: data.command });
       }
-
-      if (!device.socketId) return;
-      io.to(device.socketId).emit("command:received", { command: data.command });
       await db.insert(eventsTable).values({
         deviceId: data.deviceId,
         type: "command",
@@ -180,7 +141,6 @@ export function setupSocket(io: SocketIoServer) {
       });
 
       for (const device of devices) {
-        stopSimulator(device.id);
         await db
           .update(devicesTable)
           .set({ status: "offline", socketId: null, lastSeen: new Date() })

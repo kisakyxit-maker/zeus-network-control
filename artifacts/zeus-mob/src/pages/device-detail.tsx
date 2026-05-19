@@ -1,15 +1,28 @@
-import { Layout, TopBar } from "@/components/layout";
-import { StreamViewer } from "@/components/stream-viewer";
-import { EventConsole } from "@/components/event-console";
+import { Layout } from "@/components/layout";
+import { LiveScreen } from "@/components/device-tools";
 import { CommandPanel } from "@/components/command-panel";
 import { DeviceStatusBadge } from "@/components/device-grid";
+import { useSocket } from "@/hooks/use-socket";
 import { useGetDevice, getGetDeviceQueryKey } from "@workspace/api-client-react";
 import { useParams, Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 
+const G = "#00ff88";
+const DIM = "#1a3a20";
+
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 10px", borderBottom: "1px solid #0a160c", fontSize: 10 }}>
+      <span style={{ color: "#445", letterSpacing: "0.08em" }}>{label}</span>
+      <span style={{ color: G, fontFamily: "'Courier New', monospace", textAlign: "right" }}>{value}</span>
+    </div>
+  );
+}
+
 export default function DeviceDetail() {
   const { id } = useParams<{ id: string }>();
   const deviceId = parseInt(id, 10);
+  const socket = useSocket();
   const { data: device, isLoading } = useGetDevice(deviceId, {
     query: { enabled: !!deviceId, queryKey: getGetDeviceQueryKey(deviceId) },
   });
@@ -38,57 +51,108 @@ export default function DeviceDetail() {
 
   return (
     <Layout>
-      <TopBar title={`DEVICE // ${device.name}`}>
-        <DeviceStatusBadge status={device.status} />
-        <Link href="/devices" style={{ color: "#555", fontSize: 9, textDecoration: "none" }}>
-          &lt; BACK
-        </Link>
-      </TopBar>
-
-      <div className="panel" style={{ marginBottom: 6, padding: 0 }}>
-        <div className="panel-header">&gt; DEVICE INFO</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 0 }}>
-          {[
-            ["NAME", device.name],
-            ["MODEL", device.model],
-            ["OS", `${device.os} ${device.osVersion}`],
-            ["IP ADDRESS", device.ipAddress],
-            ["BATTERY", `${device.batteryLevel}%`],
-            ["CAPS", (
-              <div style={{ display: "flex", gap: 2, marginTop: 2 }}>
-                {(device as any).hasRoot ? (
-                  <span style={{ background: "#331100", color: "#ffaa00", border: "1px solid #ffaa00", padding: "1px 3px", fontSize: 8 }}>ROOT</span>
-                ) : (
-                  <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>ROOT</span>
-                )}
-                {(device as any).gpsActive ? (
-                  <span style={{ background: "#002200", color: "#00ff00", border: "1px solid #00ff00", padding: "1px 3px", fontSize: 8 }}>GPS</span>
-                ) : (
-                  <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>GPS</span>
-                )}
-                {(device as any).accessibilityOn ? (
-                  <span style={{ background: "#002200", color: "#00ff00", border: "1px solid #00ff00", padding: "1px 3px", fontSize: 8 }}>ACC:ON</span>
-                ) : (
-                  <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "1px 3px", fontSize: 8 }}>ACC:OFF</span>
-                )}
-              </div>
-            )],
-            ["LAST SEEN", formatDistanceToNow(new Date(device.lastSeen), { addSuffix: true })],
-          ].map(([label, value]) => (
-            <div key={label as string} style={{ padding: "6px 10px", borderRight: "1px solid #111" }}>
-              <div style={{ fontSize: 9, color: "#444", marginBottom: 2, letterSpacing: "0.08em" }}>{label}</div>
-              <div style={{ fontSize: 11, color: "#00cc00", fontFamily: "'Courier New', monospace" }}>{value}</div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) 300px",
+          gap: 10,
+          height: "calc(100vh - 24px)",
+          minHeight: 0,
+        }}
+      >
+        {/* GIANT live screen — ~78% of viewport width via grid 1fr + 300px sidebar */}
+        <section
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+            background: "#020a04",
+            border: `1px solid ${G}`,
+            boxShadow: `0 0 18px ${G}33`,
+            padding: 10,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingBottom: 8,
+              marginBottom: 8,
+              borderBottom: `1px solid ${DIM}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ color: G, fontSize: 13, fontWeight: "bold", letterSpacing: "0.18em" }}>
+                ▸ ESPELHAMENTO AO VIVO // {device.name}
+              </span>
+              <DeviceStatusBadge status={device.status} />
             </div>
-          ))}
-        </div>
-      </div>
+            <Link href="/devices" style={{ color: "#555", fontSize: 10, textDecoration: "none" }}>
+              &lt; VOLTAR
+            </Link>
+          </div>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <LiveScreen device={device} socket={socket} />
+          </div>
+        </section>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 6, marginBottom: 6 }}>
-        <StreamViewer preselectedDeviceId={deviceId} height={240} />
-        <CommandPanel preselectedDeviceId={deviceId} height={240} />
-      </div>
+        {/* Compact right sidebar: info + commands */}
+        <aside
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            minHeight: 0,
+            overflowY: "auto",
+          }}
+        >
+          <div style={{ border: `1px solid ${DIM}`, background: "#020a04" }}>
+            <div
+              style={{
+                padding: "5px 10px",
+                borderBottom: `1px solid ${DIM}`,
+                fontSize: 9,
+                fontWeight: "bold",
+                letterSpacing: "0.12em",
+                color: G,
+              }}
+            >
+              &gt; INFORMAÇÕES
+            </div>
+            <InfoRow label="NOME" value={device.name} />
+            <InfoRow label="MODELO" value={device.model} />
+            <InfoRow label="SO" value={`${device.os} ${device.osVersion}`} />
+            <InfoRow label="IP" value={device.ipAddress} />
+            <InfoRow label="BATERIA" value={`${device.batteryLevel}%`} />
+            <InfoRow
+              label="VISTO"
+              value={formatDistanceToNow(new Date(device.lastSeen), { addSuffix: true })}
+            />
+            <div style={{ padding: "8px 10px", display: "flex", gap: 4, flexWrap: "wrap" }}>
+              {(device as any).hasRoot ? (
+                <span style={{ background: "#331100", color: "#ffaa00", border: "1px solid #ffaa00", padding: "2px 6px", fontSize: 8 }}>ROOT</span>
+              ) : (
+                <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "2px 6px", fontSize: 8 }}>ROOT</span>
+              )}
+              {(device as any).gpsActive ? (
+                <span style={{ background: "#002200", color: G, border: `1px solid ${G}`, padding: "2px 6px", fontSize: 8 }}>GPS</span>
+              ) : (
+                <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "2px 6px", fontSize: 8 }}>GPS</span>
+              )}
+              {(device as any).accessibilityOn ? (
+                <span style={{ background: "#002200", color: G, border: `1px solid ${G}`, padding: "2px 6px", fontSize: 8 }}>ACC:ON</span>
+              ) : (
+                <span style={{ background: "#111", color: "#444", border: "1px solid #333", padding: "2px 6px", fontSize: 8 }}>ACC:OFF</span>
+              )}
+            </div>
+          </div>
 
-      <EventConsole deviceId={deviceId} height={260} />
+          <div style={{ flex: 1, minHeight: 200 }}>
+            <CommandPanel preselectedDeviceId={deviceId} height={"100%" as any} />
+          </div>
+        </aside>
+      </div>
     </Layout>
   );
 }
