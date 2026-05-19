@@ -140,6 +140,11 @@ export function setupSocket(io: SocketIoServer) {
     socket.on("disconnect", async () => {
       logger.info({ socketId: socket.id }, "Socket disconnected");
 
+      // Persistent-online policy: when a device socket drops (app backgrounded,
+      // screen off, network blip), DO NOT flip the device to offline. We only
+      // clear the socketId so commands aren't sent into the void. The device
+      // keeps appearing as ONLINE in the panel and "Clientes" tab — exactly
+      // what we want for an always-on agent.
       const devices = await db.query.devicesTable.findMany({
         where: eq(devicesTable.socketId, socket.id),
       });
@@ -147,23 +152,8 @@ export function setupSocket(io: SocketIoServer) {
       for (const device of devices) {
         await db
           .update(devicesTable)
-          .set({ status: "offline", socketId: null, lastSeen: new Date() })
+          .set({ socketId: null, lastSeen: new Date() })
           .where(eq(devicesTable.id, device.id));
-
-        await db.insert(eventsTable).values({
-          deviceId: device.id,
-          type: "disconnection",
-          message: `Device ${device.name} disconnected`,
-        });
-
-        io.emit("device:status", { deviceId: device.id, status: "offline", socketId: null });
-        io.emit("event:new", {
-          deviceId: device.id,
-          deviceName: device.name,
-          type: "disconnection",
-          message: `Device ${device.name} disconnected`,
-          createdAt: new Date().toISOString(),
-        });
       }
     });
   });
