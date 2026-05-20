@@ -6,18 +6,18 @@ build
 .local
 .git
 attached_assets
-
-pnpm-workspace.yaml
-pnpm-lock.yaml
-artifacts
-lib
-scripts
-
-builder.html
-build.sh.
-index.html.
-
 .replit
 .replitignore
 .config
 .agents
+
+# Other artifacts in this monorepo are not needed for the Android build.
+# DO NOT exclude `artifacts/zeus-mob-app` — that's the app being built.
+# DO NOT exclude `pnpm-workspace.yaml` / `pnpm-lock.yaml` / `lib` — EAS needs
+# them to resolve workspace dependencies during install.
+artifacts/api-server
+artifacts/zeus-mob
+artifacts/mockup-sandbox
+scripts
+
+builder.html
