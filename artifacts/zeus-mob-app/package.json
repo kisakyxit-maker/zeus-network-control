@@ -1,5 +1,5 @@
 {
-  "name": "apex-mobile",
+  "name": "@workspace/zeus-mob-app",
   "version": "1.0.0",
   "private": true,
   "main": "expo/AppEntry",
