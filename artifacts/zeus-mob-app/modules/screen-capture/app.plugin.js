@@ -1,6 +1,5 @@
-const { withAndroidManifest, AndroidConfig } = require("expo/config-plugins");
-
 module.exports = function withScreenCapture(config) {
+  const { withAndroidManifest, AndroidConfig } = require("expo/config-plugins");
   return withAndroidManifest(config, (cfg) => {
     const manifest = cfg.modResults;
     const perms = [

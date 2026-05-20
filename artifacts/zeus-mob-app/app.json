@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Apex",
-    "slug": "apex",
+    "slug": "apex-mob",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -28,12 +28,9 @@
     "web": {
       "favicon": "./assets/images/icon.png"
     },
-    "plugins": [
-      "./modules/screen-capture/app.plugin.js"
-    ],
     "extra": {
       "eas": {
-        "projectId": "f5997e1e-d341-47a5-9b5a-227b363a50a8"
+        "projectId": "48859eea-617b-44a9-9e4e-1dda5955b7c0"
       }
     },
     "owner": "kaua7383"
