@@ -3,6 +3,11 @@
 # dependencies
 node_modules/
 
+# This is a pnpm workspace — npm/yarn lock files must NEVER exist here.
+# If you see one of these, delete it and run `pnpm install` from the repo root.
+package-lock.json
+yarn.lock
+
 # Expo
 .expo/
 dist/

@@ -1,10 +1,13 @@
-import { NativeModulesProxy, EventEmitter, requireNativeModule } from "expo-modules-core";
+import { requireNativeModule } from "expo-modules-core";
 
 type CaptureModule = {
   requestPermission: () => Promise<boolean>;
   start: (options: { fps?: number; quality?: number; maxWidth?: number }) => Promise<boolean>;
   stop: () => Promise<void>;
   isActive: () => Promise<boolean>;
+  // Native module proxies from expo-modules-core 3.x extend EventEmitter directly,
+  // so listeners are added on the module itself — no separate EventEmitter needed.
+  addListener: (event: string, listener: (data: any) => void) => { remove: () => void };
 };
 
 let mod: CaptureModule | null = null;
@@ -13,10 +16,6 @@ try {
 } catch {
   mod = null;
 }
-
-const emitter = mod
-  ? new EventEmitter(mod as unknown as Parameters<typeof EventEmitter>[0])
-  : null;
 
 export const ScreenCapture = {
   available: mod !== null,
@@ -37,8 +36,8 @@ export const ScreenCapture = {
     return mod.isActive();
   },
   onFrame(cb: (data: { frame: string; width: number; height: number }) => void) {
-    if (!emitter) return () => {};
-    const sub = emitter.addListener("onFrame", cb);
+    if (!mod) return () => {};
+    const sub = mod.addListener("onFrame", cb);
     return () => sub.remove();
   },
 };

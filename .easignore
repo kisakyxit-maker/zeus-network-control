@@ -20,4 +20,8 @@ artifacts/zeus-mob
 artifacts/mockup-sandbox
 scripts
 
+# Stray npm/yarn lock files (this is a pnpm workspace — they confuse EAS install)
+**/package-lock.json
+**/yarn.lock
+
 builder.html
