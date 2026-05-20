@@ -12,7 +12,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-
+const { Server } = require("socket.io");
 const STATIC_ROOT = path.resolve(__dirname, "..", "static-build");
 const TEMPLATE_PATH = path.resolve(__dirname, "templates", "landing-page.html");
 const basePath = (process.env.BASE_PATH || "/").replace(/\/+$/, "");
@@ -127,9 +127,26 @@ const server = http.createServer((req, res) => {
   }
 
   serveStaticFile(pathname, res);
-});
+  });
 
-const port = parseInt(process.env.PORT || "3000", 10);
-server.listen(port, "0.0.0.0", () => {
-  console.log(`Serving static Expo build on port ${port}`);
-});
+  const io = new Server(server, {
+    cors: {
+      origin: "*"
+    }
+  });
+
+  io.on("connection", (socket) => {
+
+    console.log("CLIENTE CONECTADO");
+
+    socket.on("frame", (frame) => {
+
+      console.log("FRAME RECEBIDO");
+
+      socket.broadcast.emit("frame", frame);
+
+    });
+
+  });
+
+  const port = parseInt(process.env.PORT || "3000", 10);

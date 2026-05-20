@@ -1,0 +1,11 @@
+const io = require("socket.io")(3000, { cors: { origin: "*" } });
+
+console.log("Servidor aguardando conexão na porta 3000...");
+
+io.on("connection", (socket) => {
+  console.log("Sucesso! Um dispositivo conectou.");
+
+  socket.on("test", (msg) => {
+    console.log("Mensagem recebida do app: " + msg);
+  });
+});
