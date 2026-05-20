@@ -72,7 +72,7 @@ export function setupSocket(io: SocketIoServer) {
       if (data.batteryLevel !== undefined) update.batteryLevel = data.batteryLevel;
 
       await db.update(devicesTable).set(update).where(eq(devicesTable.id, data.deviceId));
-      io.emit("device:capabilities:update", { deviceId: data.deviceId, ...data });
+      io.emit("device:capabilities:update", data);
     });
 
     socket.on("device:keylog", async (data: { deviceId: number; text: string }) => {

@@ -23,19 +23,19 @@ router.get("/members", requireAdmin, async (_req: Request, res: Response) => {
 });
 
 router.post("/members/:id/approve", requireAdmin, async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   await db.update(usersTable).set({ status: "approved", updatedAt: new Date() }).where(eq(usersTable.id, id));
   res.json({ success: true });
 });
 
 router.post("/members/:id/reject", requireAdmin, async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   await db.update(usersTable).set({ status: "rejected", updatedAt: new Date() }).where(eq(usersTable.id, id));
   res.json({ success: true });
 });
 
 router.delete("/members/:id", requireAdmin, async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   await db.delete(usersTable).where(eq(usersTable.id, id));
   res.json({ success: true });
 });
