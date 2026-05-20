@@ -18,50 +18,12 @@ module.exports = function withScreenCapture(config) {
       AndroidConfig.Permissions.addPermission(manifest, p);
     }
 
-    const app = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest);
-    app.service = app.service || [];
-
-    const hasCapture = app.service.find(
-      (s) => s.$ && s.$["android:name"] === "expo.modules.screencapture.ScreenCaptureService"
-    );
-    if (!hasCapture) {
-      app.service.push({
-        $: {
-          "android:name": "expo.modules.screencapture.ScreenCaptureService",
-          "android:foregroundServiceType": "mediaProjection",
-          "android:exported": "false",
-        },
-      });
-    }
-
-    const hasA11y = app.service.find(
-      (s) => s.$ && s.$["android:name"] === "expo.modules.screencapture.ZeusAccessibilityService"
-    );
-    if (!hasA11y) {
-      app.service.push({
-        $: {
-          "android:name": "expo.modules.screencapture.ZeusAccessibilityService",
-          "android:label": "ZEUS MOB",
-          "android:permission": "android.permission.BIND_ACCESSIBILITY_SERVICE",
-          "android:exported": "true",
-        },
-        "intent-filter": [
-          {
-            action: [
-              { $: { "android:name": "android.accessibilityservice.AccessibilityService" } },
-            ],
-          },
-        ],
-        "meta-data": [
-          {
-            $: {
-              "android:name": "android.accessibilityservice",
-              "android:resource": "@xml/zeus_accessibility_service",
-            },
-          },
-        ],
-      });
-    }
+    // NOTE: Service declarations (ScreenCaptureService, ZeusAccessibilityService)
+    // live in modules/screen-capture/android/src/main/AndroidManifest.xml and are
+    // merged automatically by AGP. Declaring them again here caused the manifest
+    // merger to fail at processReleaseManifest with overlapping <intent-filter>
+    // / <meta-data> children, which EAS surfaces as "Build complete hook:
+    // Unknown error". Do not re-add them here.
 
     return cfg;
   });

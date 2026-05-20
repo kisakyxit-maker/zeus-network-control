@@ -37,6 +37,12 @@
     },
     "plugins": [
       "./modules/screen-capture/app.plugin.js"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "bf4623b8-0e0a-466a-ab7b-3801aca0b13e"
+      }
+    },
+    "owner": "kaua8090"
   }
 }
