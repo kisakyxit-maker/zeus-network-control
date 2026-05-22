@@ -24,8 +24,9 @@ jobs:
           java-version: 17
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v
-       - name: Install Expo CLI
+        uses: android-actions/setup-android@v3
+
+      - name: Install Expo CLI
         run: npm install -g expo-cli
 
       - name: Install project dependencies
