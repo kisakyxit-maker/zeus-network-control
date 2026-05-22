@@ -1,40 +1,9 @@
-name: Build APK
+rootProject.name = 'ZeusMob'
+rootProject.projectDir = rootDir
 
-on:
-  workflow_dispatch:
+apply from: new File(["node", "--print", "require.resolve('@react-native-community/cli-platform-android/native_modules.gradle', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()), ":extraNodeModules"
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+apply from: file("../node_modules/@expo/android/expo.gradle")
+apply from: file("../node_modules/react-native-gradle-plugin/react.gradle")
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Grant execute permission
-        run: chmod +x android/gradlew
-
-      - name: Build Debug APK
-        run: |
-          cd android
-          ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+include ':app'
