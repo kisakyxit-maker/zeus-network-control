@@ -25,14 +25,14 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v
-     - name: Install Expo CLI
-  run: npm install -g expo-cli
+       - name: Install Expo CLI
+        run: npm install -g expo-cli
 
- - name: Install project dependencies
-  run: npm install
+      - name: Install project dependencies
+        run: npm install
 
-- name: Build APK
-  run: |
-    cd android
-    chmod +x gradlew
-    ./gradlew assembleDebug
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
