@@ -33,7 +33,7 @@ jobs:
         run: npm install
 
       - name: Build APK
-        run: |
+       run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
