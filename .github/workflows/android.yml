@@ -1,4 +1,4 @@
-name: Android Build
+name: Build APK
 
 on:
   workflow_dispatch:
@@ -8,16 +8,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
-          node-version: 20
+          distribution: temurin
+          java-version: 17
 
-      - name: Install dependencies
-        run: npm install
+      - name: Grant execute permission
+        run: chmod +x android/gradlew
 
-      - name: Check project
+      - name: Build Debug APK
         run: |
-          ls
-          cat package.json
+          cd android
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
